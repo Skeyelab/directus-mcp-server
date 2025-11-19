@@ -2,6 +2,23 @@
 
 A Model Context Protocol (MCP) server that provides comprehensive tools for managing Directus schema and content. This server enables AI assistants and other MCP clients to interact with Directus instances programmatically.
 
+## Installation
+
+### From npm (once published)
+
+```bash
+npm install -g directus-mcp-server
+```
+
+### From source
+
+```bash
+git clone https://github.com/yourusername/directus-mcp.git
+cd directus-mcp
+npm install
+npm run build
+```
+
 ## Features
 
 - **Schema Management**: Create, read, update, and delete collections, fields, and relations
@@ -66,6 +83,38 @@ node dist/index.js
 
 Add to your MCP client configuration (e.g., Claude Desktop, Cline):
 
+**Option 1: Using npx (recommended - no installation needed):**
+```json
+{
+  "mcpServers": {
+    "directus": {
+      "command": "npx",
+      "args": ["-y", "directus-mcp-server"],
+      "env": {
+        "DIRECTUS_URL": "https://your-directus-instance.com",
+        "DIRECTUS_TOKEN": "your_static_token_here"
+      }
+    }
+  }
+}
+```
+
+**Option 2: Using global installation:**
+```json
+{
+  "mcpServers": {
+    "directus": {
+      "command": "directus-mcp",
+      "env": {
+        "DIRECTUS_URL": "https://your-directus-instance.com",
+        "DIRECTUS_TOKEN": "your_static_token_here"
+      }
+    }
+  }
+}
+```
+
+**Option 3: Using local source:**
 ```json
 {
   "mcpServers": {

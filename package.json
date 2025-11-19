@@ -26,15 +26,15 @@
     "api",
     "schema-management"
   ],
-  "author": "Your Name <your.email@example.com>",
+  "author": "Eric Dahl<eric@ericdahl.dev>",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/yourusername/directus-mcp.git"
+    "url": "https://github.com/Skeyelab/directus-mcp.git"
   },
-  "homepage": "https://github.com/yourusername/directus-mcp#readme",
+  "homepage": "https://github.com/Skeyelab/directus-mcp#readme",
   "bugs": {
-    "url": "https://github.com/yourusername/directus-mcp/issues"
+    "url": "https://github.com/Skeyelab/directus-mcp/issues"
   },
   "engines": {
     "node": ">=18.0.0"
