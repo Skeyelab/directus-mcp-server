@@ -1,6 +1,51 @@
 # Publishing Guide
 
-## Steps to Publish the Directus MCP Server
+## Automated Publishing (Recommended)
+
+This project uses GitHub Actions to automatically publish to NPM when version tags are pushed. This ensures all releases go through the same quality checks (lint, test, build) before publishing.
+
+### Setup (One-time)
+
+1. **Create NPM Access Token**:
+   - Go to [npmjs.com](https://www.npmjs.com) and log in
+   - Navigate to Access Tokens: https://www.npmjs.com/settings/YOUR_USERNAME/tokens
+   - Click "Generate New Token" → "Automation" (or "Classic" with "Publish" scope)
+   - Copy the token (you won't see it again)
+
+2. **Add NPM_TOKEN to GitHub Secrets**:
+   - Go to your GitHub repository
+   - Navigate to Settings → Secrets and variables → Actions
+   - Click "New repository secret"
+   - Name: `NPM_TOKEN`
+   - Value: Paste your NPM access token
+   - Click "Add secret"
+
+### Publishing a New Version
+
+Once setup is complete, publishing is simple:
+
+```bash
+# 1. Update version (patch, minor, or major)
+npm version patch   # for bug fixes (1.0.0 → 1.0.1)
+npm version minor   # for new features (1.0.0 → 1.1.0)
+npm version major   # for breaking changes (1.0.0 → 2.0.0)
+
+# 2. Push the commit and tag
+git push && git push --tags
+```
+
+That's it! The GitHub Actions workflow will:
+- Run linting and tests
+- Build the project
+- Verify the version matches the tag
+- Publish to NPM
+- Create a GitHub release
+
+The workflow triggers automatically when you push a tag matching `v*` (e.g., `v1.0.2`).
+
+## Manual Publishing (Fallback)
+
+If you need to publish manually or the automated workflow isn't working:
 
 ### 1. Prepare the Package
 
@@ -164,26 +209,28 @@ After publishing, users add to their MCP config:
 
 ## Version Management
 
-For future updates:
+The automated workflow handles publishing, but you still manage version bumps manually:
 
 ```bash
-# Patch release (1.0.0 → 1.0.1)
+# Patch release (1.0.0 → 1.0.1) - bug fixes
 npm version patch
 
-# Minor release (1.0.0 → 1.1.0)
+# Minor release (1.0.0 → 1.1.0) - new features
 npm version minor
 
-# Major release (1.0.0 → 2.0.0)
+# Major release (1.0.0 → 2.0.0) - breaking changes
 npm version major
 
-# This creates a git tag and updates package.json
+# This automatically:
+# - Updates package.json version
+# - Creates a git commit
+# - Creates a git tag (e.g., v1.0.1)
 
-# Push changes and tags
+# Push changes and tags to trigger automated publish
 git push && git push --tags
-
-# Publish new version
-npm publish
 ```
+
+**Note**: The `npm version` command will also run the `prepublishOnly` script, which ensures the project is built before creating the tag.
 
 ## Package Quality Checklist
 
