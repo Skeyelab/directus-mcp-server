@@ -115,7 +115,7 @@ export const schemaTools = [
     name: 'list_collections',
     description: 'List all collections in the Directus instance. Returns collection names, metadata, and schema information.',
     inputSchema: z.object({}),
-    toolsets: ['default', 'schema'] as const,
+    toolsets: ['default', 'collections'] as const,
     handler: async (client: DirectusClient, _args: any) => {
       const result = await client.getCollections();
       return {
@@ -134,7 +134,7 @@ export const schemaTools = [
     inputSchema: z.object({
       collection: CollectionNameSchema,
     }),
-    toolsets: ['default', 'schema'] as const,
+    toolsets: ['default', 'collections'] as const,
     handler: async (client: DirectusClient, args: any) => {
       const result = await client.getCollection(args.collection);
       return {
@@ -151,7 +151,7 @@ export const schemaTools = [
     name: 'create_collection',
     description: 'Create a new collection (database table) in Directus. Automatically creates a proper database table with schema. Can include initial fields. Example: {collection: "articles", meta: {icon: "article", note: "Blog articles"}, fields: [{field: "id", type: "integer", schema: {is_primary_key: true, has_auto_increment: true}}, {field: "title", type: "string"}]}',
     inputSchema: CreateCollectionSchema,
-    toolsets: ['default', 'schema'] as const,
+    toolsets: ['default', 'collections'] as const,
     handler: async (client: DirectusClient, args: any) => {
       // Ensure schema is set to create an actual database table (not just a folder)
       if (!args.schema) {
@@ -175,7 +175,7 @@ export const schemaTools = [
     name: 'update_collection',
     description: 'Update collection metadata such as icon, note, visibility settings, etc.',
     inputSchema: UpdateCollectionSchema,
-    toolsets: ['default', 'schema'] as const,
+    toolsets: ['default', 'collections'] as const,
     handler: async (client: DirectusClient, args: any) => {
       const { collection, ...data } = args;
       const result = await client.updateCollection(collection, data);
@@ -195,7 +195,7 @@ export const schemaTools = [
     inputSchema: z.object({
       collection: CollectionNameSchema,
     }),
-    toolsets: ['default', 'schema'] as const,
+    toolsets: ['default', 'collections'] as const,
     handler: async (client: DirectusClient, args: any) => {
       await client.deleteCollection(args.collection);
       return {
@@ -214,7 +214,7 @@ export const schemaTools = [
     inputSchema: z.object({
       collection: CollectionNameSchema,
     }),
-    toolsets: ['default', 'schema'] as const,
+    toolsets: ['default', 'fields'] as const,
     handler: async (client: DirectusClient, args: any) => {
       const result = await client.getFields(args.collection);
       return {
@@ -231,7 +231,7 @@ export const schemaTools = [
     name: 'create_field',
     description: 'Add a new field to a collection. Specify field type, interface, and constraints. Example: {collection: "articles", field: "status", type: "string", meta: {interface: "select-dropdown", options: {choices: [{text: "Draft", value: "draft"}, {text: "Published", value: "published"}]}, required: true}}',
     inputSchema: CreateFieldSchema,
-    toolsets: ['default', 'schema'] as const,
+    toolsets: ['default', 'fields'] as const,
     handler: async (client: DirectusClient, args: any) => {
       const { collection, ...fieldData } = args;
       const result = await client.createField(collection, fieldData);
@@ -249,7 +249,7 @@ export const schemaTools = [
     name: 'update_field',
     description: 'Update field properties such as metadata, interface options, or schema constraints.',
     inputSchema: UpdateFieldSchema,
-    toolsets: ['default', 'schema'] as const,
+    toolsets: ['default', 'fields'] as const,
     handler: async (client: DirectusClient, args: any) => {
       const { collection, field, ...data } = args;
       const result = await client.updateField(collection, field, data);
@@ -267,7 +267,7 @@ export const schemaTools = [
     name: 'delete_field',
     description: 'Remove a field from a collection. This will delete the column and all its data. Use with caution.',
     inputSchema: DeleteFieldSchema,
-    toolsets: ['default', 'schema'] as const,
+    toolsets: ['default', 'fields'] as const,
     handler: async (client: DirectusClient, args: any) => {
       await client.deleteField(args.collection, args.field);
       return {
@@ -284,7 +284,7 @@ export const schemaTools = [
     name: 'list_relations',
     description: 'List all relations (foreign keys, M2O, O2M, M2M) in the Directus instance.',
     inputSchema: z.object({}),
-    toolsets: ['default', 'schema'] as const,
+    toolsets: ['default', 'relations'] as const,
     handler: async (client: DirectusClient, _args: any) => {
       const result = await client.getRelations();
       return {
@@ -303,7 +303,7 @@ export const schemaTools = [
     inputSchema: z.object({
       export: z.enum(['csv', 'json', 'xml', 'yaml']).optional().describe('Export format for the snapshot file'),
     }),
-    toolsets: ['default', 'schema'] as const,
+    toolsets: ['schema'] as const,
     handler: async (client: DirectusClient, args: any) => {
       const params = args.export ? { export: args.export } : undefined;
       const result = await client.getSchemaSnapshot(params);
@@ -321,7 +321,7 @@ export const schemaTools = [
     name: 'get_schema_diff',
     description: 'Compare the current instance\'s schema against a schema snapshot and retrieve the difference. This endpoint is only available to admin users. Optionally bypass version and database vendor restrictions with force=true.',
     inputSchema: SchemaDiffSchema,
-    toolsets: ['default', 'schema'] as const,
+    toolsets: ['schema'] as const,
     handler: async (client: DirectusClient, args: any) => {
       const { snapshot, force } = args;
       const options = force ? { force: true } : undefined;
@@ -340,7 +340,7 @@ export const schemaTools = [
     name: 'apply_schema_diff',
     description: 'Update the instance\'s schema by applying a diff previously retrieved via get_schema_diff. This endpoint is only available to admin users. The diff should include hash and diff object with collections, fields, and relations differences.',
     inputSchema: ApplySchemaDiffSchema,
-    toolsets: ['default', 'schema'] as const,
+    toolsets: ['schema'] as const,
     handler: async (client: DirectusClient, args: any) => {
       const result = await client.applySchemaDiff(args);
       return {
@@ -357,7 +357,7 @@ export const schemaTools = [
     name: 'create_relation',
     description: 'Create a relation between collections (M2O, O2M, or M2M). For M2O: specify collection, field, and related_collection. For O2M: also include meta.one_field. Example M2O: {collection: "articles", field: "author", related_collection: "users"}',
     inputSchema: CreateRelationSchema,
-    toolsets: ['default', 'schema'] as const,
+    toolsets: ['default', 'relations'] as const,
     handler: async (client: DirectusClient, args: any) => {
       const result = await client.createRelation(args);
       return {
@@ -374,7 +374,7 @@ export const schemaTools = [
     name: 'delete_relation',
     description: 'Delete a relation. Specify the collection and field that contains the relation.',
     inputSchema: DeleteRelationSchema,
-    toolsets: ['default', 'schema'] as const,
+    toolsets: ['default', 'relations'] as const,
     handler: async (client: DirectusClient, args: any) => {
       // First get all relations to find the ID
       const relations = await client.getRelations();

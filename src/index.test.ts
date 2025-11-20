@@ -195,16 +195,39 @@ describe('Index Helper Functions', () => {
   describe('Toolset Support', () => {
     const allTools = [...schemaTools, ...contentTools, ...flowTools];
 
-    it('should have schema and content tools assigned to default toolset', () => {
-      [...schemaTools, ...contentTools].forEach((tool) => {
+    it('should have collections, fields, relations, and content tools assigned to default toolset', () => {
+      // Schema snapshot/diff tools are NOT in default, only collections/fields/relations/content are
+      const defaultTools = [
+        ...schemaTools.filter(t => !['get_schema_snapshot', 'get_schema_diff', 'apply_schema_diff'].includes(t.name)),
+        ...contentTools
+      ];
+      defaultTools.forEach((tool) => {
         expect(tool.toolsets).toContain('default');
       });
     });
 
-    it('should have schema tools assigned to schema toolset', () => {
+    it('should have schema tools assigned to appropriate toolsets', () => {
       schemaTools.forEach((tool) => {
-        expect(tool.toolsets).toContain('schema');
-        expect(tool.toolsets).toContain('default');
+        // Collections tools should have 'collections' and 'default' toolsets
+        if (['list_collections', 'get_collection', 'create_collection', 'update_collection', 'delete_collection'].includes(tool.name)) {
+          expect(tool.toolsets).toContain('collections');
+          expect(tool.toolsets).toContain('default');
+        }
+        // Fields tools should have 'fields' and 'default' toolsets
+        if (['list_fields', 'create_field', 'update_field', 'delete_field'].includes(tool.name)) {
+          expect(tool.toolsets).toContain('fields');
+          expect(tool.toolsets).toContain('default');
+        }
+        // Relations tools should have 'relations' and 'default' toolsets
+        if (['list_relations', 'create_relation', 'delete_relation'].includes(tool.name)) {
+          expect(tool.toolsets).toContain('relations');
+          expect(tool.toolsets).toContain('default');
+        }
+        // Schema snapshot/diff tools should have 'schema' toolset only (NOT in default)
+        if (['get_schema_snapshot', 'get_schema_diff', 'apply_schema_diff'].includes(tool.name)) {
+          expect(tool.toolsets).toContain('schema');
+          expect(tool.toolsets).not.toContain('default');
+        }
       });
     });
 
@@ -223,7 +246,7 @@ describe('Index Helper Functions', () => {
     });
 
     it('should have valid toolset values', () => {
-      const validToolsets: Toolset[] = ['default', 'schema', 'content', 'flow'];
+      const validToolsets: Toolset[] = ['default', 'schema', 'content', 'flow', 'collections', 'fields', 'relations'];
       allTools.forEach((tool) => {
         if (tool.toolsets) {
           tool.toolsets.forEach((toolset) => {
@@ -247,7 +270,7 @@ describe('Index Helper Functions', () => {
         .map((t) => t.trim().toLowerCase())
         .filter((t) => t.length > 0);
 
-      const validToolsets: Toolset[] = ['default', 'schema', 'content', 'flow'];
+      const validToolsets: Toolset[] = ['default', 'schema', 'content', 'flow', 'collections', 'fields', 'relations'];
       const filtered = requestedToolsets.filter((t) =>
         validToolsets.includes(t as Toolset)
       ) as Toolset[];
@@ -283,12 +306,16 @@ describe('Index Helper Functions', () => {
         expect(parseToolsets('content')).toEqual(['content']);
         expect(parseToolsets('flow')).toEqual(['flow']);
         expect(parseToolsets('default')).toEqual(['default']);
+        expect(parseToolsets('collections')).toEqual(['collections']);
+        expect(parseToolsets('fields')).toEqual(['fields']);
+        expect(parseToolsets('relations')).toEqual(['relations']);
       });
 
       it('should parse multiple toolsets', () => {
         expect(parseToolsets('schema,content')).toEqual(['schema', 'content']);
         expect(parseToolsets('default,flow')).toEqual(['default', 'flow']);
         expect(parseToolsets('schema,content,flow')).toEqual(['schema', 'content', 'flow']);
+        expect(parseToolsets('collections,fields,relations')).toEqual(['collections', 'fields', 'relations']);
       });
 
       it('should handle whitespace in toolset list', () => {
@@ -312,18 +339,22 @@ describe('Index Helper Functions', () => {
     });
 
     describe('filterToolsByToolsets', () => {
-      it('should return schema and content tools (but not flow tools) when filtering by default toolset', () => {
+      it('should return collections, fields, relations, and content tools (but not schema or flow tools) when filtering by default toolset', () => {
         const filtered = filterToolsByToolsets(allTools, ['default']);
-        expect(filtered.length).toBe(schemaTools.length + contentTools.length);
+        // Schema snapshot/diff tools (3) are NOT in default, so subtract them
+        const defaultSchemaTools = schemaTools.length - 3;
+        expect(filtered.length).toBe(defaultSchemaTools + contentTools.length);
         filtered.forEach((tool) => {
           expect(tool.toolsets).toContain('default');
           expect(tool.toolsets).not.toContain('flow');
+          expect(tool.toolsets).not.toContain('schema');
         });
       });
 
-      it('should return only schema tools when filtering by schema toolset', () => {
+      it('should return only schema snapshot/diff tools when filtering by schema toolset', () => {
         const filtered = filterToolsByToolsets(allTools, ['schema']);
-        expect(filtered.length).toBe(schemaTools.length);
+        // Only 3 tools have 'schema' toolset: get_schema_snapshot, get_schema_diff, apply_schema_diff
+        expect(filtered.length).toBe(3);
         filtered.forEach((tool) => {
           expect(tool.toolsets).toContain('schema');
         });
@@ -345,12 +376,41 @@ describe('Index Helper Functions', () => {
         });
       });
 
+      it('should return only collections tools when filtering by collections toolset', () => {
+        const filtered = filterToolsByToolsets(allTools, ['collections']);
+        // 5 collection tools: list_collections, get_collection, create_collection, update_collection, delete_collection
+        expect(filtered.length).toBe(5);
+        filtered.forEach((tool) => {
+          expect(tool.toolsets).toContain('collections');
+        });
+      });
+
+      it('should return only fields tools when filtering by fields toolset', () => {
+        const filtered = filterToolsByToolsets(allTools, ['fields']);
+        // 4 field tools: list_fields, create_field, update_field, delete_field
+        expect(filtered.length).toBe(4);
+        filtered.forEach((tool) => {
+          expect(tool.toolsets).toContain('fields');
+        });
+      });
+
+      it('should return only relations tools when filtering by relations toolset', () => {
+        const filtered = filterToolsByToolsets(allTools, ['relations']);
+        // 3 relation tools: list_relations, create_relation, delete_relation
+        expect(filtered.length).toBe(3);
+        filtered.forEach((tool) => {
+          expect(tool.toolsets).toContain('relations');
+        });
+      });
+
       it('should return tools from multiple toolsets', () => {
         const filtered = filterToolsByToolsets(allTools, [
           'schema',
           'content',
         ] as Toolset[]);
-        expect(filtered.length).toBe(schemaTools.length + contentTools.length);
+        // Schema toolset has 3 tools, content has all contentTools
+        const schemaSnapshotTools = schemaTools.filter(t => (t.toolsets as readonly Toolset[]).includes('schema'));
+        expect(filtered.length).toBe(schemaSnapshotTools.length + contentTools.length);
         filtered.forEach((tool) => {
           const toolToolsets = tool.toolsets as readonly Toolset[];
           expect(
@@ -374,22 +434,29 @@ describe('Index Helper Functions', () => {
     });
 
     describe('Default Behavior', () => {
-      it('should expose schema and content tools (but not flow tools) when no toolset is specified (default toolset)', () => {
+      it('should expose collections, fields, relations, and content tools (but not schema or flow tools) when no toolset is specified (default toolset)', () => {
         const toolsets = parseToolsets(undefined);
         const filtered = filterToolsByToolsets(allTools, toolsets);
-        expect(filtered.length).toBe(schemaTools.length + contentTools.length);
+        // Schema snapshot/diff tools (3) are NOT in default
+        const defaultSchemaTools = schemaTools.length - 3;
+        expect(filtered.length).toBe(defaultSchemaTools + contentTools.length);
         filtered.forEach((tool) => {
           expect(tool.toolsets).toContain('default');
+          expect(tool.toolsets).not.toContain('schema');
+          expect(tool.toolsets).not.toContain('flow');
         });
       });
 
-      it('should expose only default tools (schema and content, not flow) when default toolset is explicitly requested', () => {
+      it('should expose only default tools (collections, fields, relations, content, not schema or flow) when default toolset is explicitly requested', () => {
         const toolsets = parseToolsets('default');
         const filtered = filterToolsByToolsets(allTools, toolsets);
-        expect(filtered.length).toBe(schemaTools.length + contentTools.length);
+        // Schema snapshot/diff tools (3) are NOT in default
+        const defaultSchemaTools = schemaTools.length - 3;
+        expect(filtered.length).toBe(defaultSchemaTools + contentTools.length);
         filtered.forEach((tool) => {
           expect(tool.toolsets).toContain('default');
           expect(tool.toolsets).not.toContain('flow');
+          expect(tool.toolsets).not.toContain('schema');
         });
       });
     });

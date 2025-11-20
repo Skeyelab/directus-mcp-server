@@ -48,7 +48,7 @@ function parseToolsets(envValue: string | undefined): Toolset[] {
     .filter((t) => t.length > 0);
 
   // Validate toolset names (ignore invalid ones)
-  const validToolsets: Toolset[] = ['default', 'schema', 'content', 'flow'];
+  const validToolsets: Toolset[] = ['default', 'schema', 'content', 'flow', 'collections', 'fields', 'relations'];
   const filtered = requestedToolsets.filter((t) =>
     validToolsets.includes(t as Toolset)
   ) as Toolset[];

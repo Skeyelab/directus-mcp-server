@@ -64,28 +64,37 @@ DIRECTUS_TOKEN=your_static_token_here
 The Directus MCP server organizes tools into logical toolsets, similar to GitHub's MCP implementation. This allows you to control which tools are exposed to the MCP client.
 
 **Available Toolsets:**
-- `default` - Contains schema and content tools (default behavior when no toolset is specified)
-- `schema` - Schema management tools (collections, fields, relations)
+- `default` - Contains collections, fields, relations, and content tools (default behavior when no toolset is specified)
+- `collections` - Collection management tools (list, get, create, update, delete collections)
+- `fields` - Field management tools (list, create, update, delete fields)
+- `relations` - Relation management tools (list, create, delete relations)
+- `schema` - Schema snapshot and diff tools (get snapshot, get diff, apply diff) - NOT included in default toolset
 - `content` - Content management tools (items CRUD operations)
 - `flow` - Flow management tools (workflow automation) - NOT included in default toolset
 
 **Default Behavior:**
-When `MCP_TOOLSETS` is not set or empty, only tools in the `default` toolset are exposed. The `default` toolset contains schema and content tools, but **not** flow tools. Flow tools must be explicitly requested by including `flow` in the `MCP_TOOLSETS` environment variable.
+When `MCP_TOOLSETS` is not set or empty, only tools in the `default` toolset are exposed. The `default` toolset contains collections, fields, relations, and content tools, but **not** schema or flow tools. Schema and flow tools must be explicitly requested by including `schema` or `flow` in the `MCP_TOOLSETS` environment variable.
 
 **Configuration:**
 Set the `MCP_TOOLSETS` environment variable to a comma-separated list of toolsets:
 
 ```env
-# Expose only schema tools
+# Expose only collections tools
+MCP_TOOLSETS=collections
+
+# Expose only schema snapshot/diff tools
 MCP_TOOLSETS=schema
 
-# Expose schema and content tools
-MCP_TOOLSETS=schema,content
+# Expose collections and fields tools
+MCP_TOOLSETS=collections,fields
+
+# Expose all schema-related toolsets
+MCP_TOOLSETS=collections,fields,relations,schema
 
 # Expose all toolsets (includes flow tools)
 MCP_TOOLSETS=default,flow
 # OR
-MCP_TOOLSETS=schema,content,flow
+MCP_TOOLSETS=collections,fields,relations,schema,content,flow
 ```
 
 **Examples:**
@@ -119,8 +128,8 @@ MCP_TOOLSETS=schema,content,flow
 - Toolset names are case-insensitive
 - Invalid toolset names are ignored (with a warning)
 - If all requested toolsets are invalid, the server defaults to the `default` toolset
-- Schema and content tools belong to both `default` and their specific toolset
-- Flow tools belong ONLY to the `flow` toolset (not in `default`)
+- Collections, fields, relations, and content tools belong to both `default` and their specific toolset
+- Schema and flow tools belong ONLY to their respective toolsets (not in `default`)
 
 ## Building
 
