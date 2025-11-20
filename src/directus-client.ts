@@ -176,6 +176,52 @@ export class DirectusClient {
     return this.request('DELETE', `/items/${collection}`, ids);
   }
 
+  // Flows
+  async listFlows(params?: any): Promise<any> {
+    const queryString = params ? this.buildQueryString(params) : '';
+    return this.request('GET', `/flows${queryString}`);
+  }
+
+  async getFlow(id: string, params?: any): Promise<any> {
+    const queryString = params ? this.buildQueryString(params) : '';
+    return this.request('GET', `/flows/${id}${queryString}`);
+  }
+
+  async createFlow(data: any): Promise<any> {
+    return this.request('POST', '/flows', data);
+  }
+
+  async createFlows(flows: any[]): Promise<any> {
+    return this.request('POST', '/flows', flows);
+  }
+
+  async updateFlow(id: string, data: any): Promise<any> {
+    return this.request('PATCH', `/flows/${id}`, data);
+  }
+
+  async updateFlows(flows: any[]): Promise<any> {
+    return this.request('PATCH', '/flows', flows);
+  }
+
+  async deleteFlow(id: string): Promise<any> {
+    return this.request('DELETE', `/flows/${id}`);
+  }
+
+  async deleteFlows(ids: string[]): Promise<any> {
+    return this.request('DELETE', '/flows', ids);
+  }
+
+  async triggerFlow(method: 'GET' | 'POST', id: string, bodyData?: any, queryParams?: any): Promise<any> {
+    const queryString = queryParams ? this.buildQueryString(queryParams) : '';
+    const endpoint = `/flows/trigger/${id}${queryString}`;
+
+    if (method === 'POST') {
+      return this.request('POST', endpoint, bodyData);
+    } else {
+      return this.request('GET', endpoint);
+    }
+  }
+
   private buildQueryString(params: any): string {
     const queryParams = new URLSearchParams();
 
@@ -217,6 +263,10 @@ export class DirectusClient {
 
     if (params.deep) {
       queryParams.append('deep', JSON.stringify(params.deep));
+    }
+
+    if (params.meta) {
+      queryParams.append('meta', params.meta);
     }
 
     const query = queryParams.toString();
