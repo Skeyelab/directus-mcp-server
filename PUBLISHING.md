@@ -6,19 +6,26 @@ This project uses GitHub Actions to automatically publish to NPM when version ta
 
 ### Setup (One-time)
 
-1. **Create NPM Access Token**:
-   - Go to [npmjs.com](https://www.npmjs.com) and log in
-   - Navigate to Access Tokens: https://www.npmjs.com/settings/YOUR_USERNAME/tokens
-   - Click "Generate New Token" → "Automation" (or "Classic" with "Publish" scope)
-   - Copy the token (you won't see it again)
+**Configure NPM Trusted Publisher** (Recommended - More Secure):
 
-2. **Add NPM_TOKEN to GitHub Secrets**:
-   - Go to your GitHub repository
-   - Navigate to Settings → Secrets and variables → Actions
-   - Click "New repository secret"
-   - Name: `NPM_TOKEN`
-   - Value: Paste your NPM access token
-   - Click "Add secret"
+1. Go to [npmjs.com](https://www.npmjs.com) and log in
+2. Navigate to your package: https://www.npmjs.com/package/@skeyelab/directus-mcp-server
+3. Go to Package Settings → Access → Automation → Trusted Publishers
+4. Click "Add Trusted Publisher"
+5. Select "GitHub Actions" as the publisher type
+6. Enter your GitHub repository: `Skeyelab/directus-mcp`
+7. Set the workflow file path: `.github/workflows/publish.yml`
+8. Set the environment name (leave empty for default)
+9. Click "Add"
+
+This uses OpenID Connect (OIDC) for authentication, which is more secure than storing tokens. No GitHub secrets are needed!
+
+**Alternative: Using NPM Token** (if trusted publishers aren't available):
+
+If you prefer to use a token instead:
+1. Create NPM Access Token at https://www.npmjs.com/settings/YOUR_USERNAME/tokens
+2. Add `NPM_TOKEN` to GitHub Secrets (Settings → Secrets and variables → Actions)
+3. Update the workflow to use `NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}` in the publish step
 
 ### Publishing a New Version
 
