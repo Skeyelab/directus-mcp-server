@@ -28,7 +28,7 @@ jobs:
           always-auth: true
           # OIDC authentication for trusted publishers
           # Ensure trusted publisher is configured in npm with:
-          # - Repository: Skeyelab/directus-mcp
+          # - Repository: Skeyelab/directus-mcp-server
           # - Workflow file: .github/workflows/publish.yml
 
       - name: Install dependencies
@@ -63,10 +63,12 @@ jobs:
       - name: Verify NPM authentication
         run: |
           echo "Verifying npm authentication..."
-          npm whoami --registry=https://registry.npmjs.org || echo "Warning: Authentication check failed"
+          npm whoami --registry=https://registry.npmjs.org || (echo "Error: Authentication failed. Check trusted publisher configuration." && exit 1)
 
       - name: Publish to NPM
         run: npm publish --access public --provenance
+        env:
+          NPM_CONFIG_PROVENANCE: true
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
