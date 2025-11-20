@@ -86,6 +86,29 @@ const DeleteRelationSchema = z.object({
   field: z.string().min(1).describe('Field name'),
 });
 
+const SchemaSnapshotSchema = z.object({
+  version: z.number().optional().describe('Schema version'),
+  directus: z.string().optional().describe('Directus version'),
+  vendor: z.string().optional().describe('Database vendor'),
+  collections: z.array(z.any()).describe('Array of collection definitions'),
+  fields: z.array(z.any()).describe('Array of field definitions'),
+  relations: z.array(z.any()).describe('Array of relation definitions'),
+});
+
+const SchemaDiffSchema = z.object({
+  snapshot: SchemaSnapshotSchema.describe('Schema snapshot to compare against'),
+  force: z.boolean().optional().describe('Bypass version and database vendor restrictions'),
+});
+
+const ApplySchemaDiffSchema = z.object({
+  hash: z.string().optional().describe('Hash of the schema snapshot'),
+  diff: z.object({
+    collections: z.array(z.any()).optional().describe('Collection differences'),
+    fields: z.array(z.any()).optional().describe('Field differences'),
+    relations: z.array(z.any()).optional().describe('Relation differences'),
+  }).describe('Schema difference to apply'),
+});
+
 // Tool implementations
 export const schemaTools = [
   {
@@ -254,6 +277,59 @@ export const schemaTools = [
     inputSchema: z.object({}),
     handler: async (client: DirectusClient, _args: any) => {
       const result = await client.getRelations();
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(result, null, 2),
+          },
+        ],
+      };
+    },
+  },
+  {
+    name: 'get_schema_snapshot',
+    description: 'Get a complete schema snapshot of the Directus instance including all collections, fields, and relations. Optionally export to a file format (csv, json, xml, yaml).',
+    inputSchema: z.object({
+      export: z.enum(['csv', 'json', 'xml', 'yaml']).optional().describe('Export format for the snapshot file'),
+    }),
+    handler: async (client: DirectusClient, args: any) => {
+      const params = args.export ? { export: args.export } : undefined;
+      const result = await client.getSchemaSnapshot(params);
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(result, null, 2),
+          },
+        ],
+      };
+    },
+  },
+  {
+    name: 'get_schema_diff',
+    description: 'Compare the current instance\'s schema against a schema snapshot and retrieve the difference. This endpoint is only available to admin users. Optionally bypass version and database vendor restrictions with force=true.',
+    inputSchema: SchemaDiffSchema,
+    handler: async (client: DirectusClient, args: any) => {
+      const { snapshot, force } = args;
+      const options = force ? { force: true } : undefined;
+      const result = await client.getSchemaDiff(snapshot, options);
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(result, null, 2),
+          },
+        ],
+      };
+    },
+  },
+  {
+    name: 'apply_schema_diff',
+    description: 'Update the instance\'s schema by applying a diff previously retrieved via get_schema_diff. This endpoint is only available to admin users. The diff should include hash and diff object with collections, fields, and relations differences.',
+    inputSchema: ApplySchemaDiffSchema,
+    handler: async (client: DirectusClient, args: any) => {
+      const result = await client.applySchemaDiff(args);
       return {
         content: [
           {

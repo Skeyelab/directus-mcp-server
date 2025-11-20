@@ -550,6 +550,47 @@ describe('DirectusClient', () => {
     });
   });
 
+  describe('Schema Snapshot', () => {
+    let client: DirectusClient;
+
+    beforeEach(() => {
+      client = new DirectusClient({
+        url: baseUrl,
+        token: 'test-token',
+      });
+    });
+
+    it('should get schema snapshot', async () => {
+      const mockData = {
+        version: 1,
+        directus: '10.0.0',
+        vendor: 'postgres',
+        collections: [
+          { collection: 'articles', meta: { icon: 'article' } },
+        ],
+        fields: [
+          { collection: 'articles', field: 'id', type: 'integer' },
+          { collection: 'articles', field: 'title', type: 'string' },
+        ],
+        relations: [
+          { collection: 'articles', field: 'author', related_collection: 'users' },
+        ],
+      };
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => mockData,
+      });
+
+      const result = await client.getSchemaSnapshot();
+      expect(result).toEqual(mockData);
+      expect(mockFetch).toHaveBeenCalledWith(
+        `${baseUrl}/schema/snapshot`,
+        expect.any(Object)
+      );
+    });
+  });
+
   describe('Items', () => {
     let client: DirectusClient;
 
