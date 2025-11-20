@@ -143,6 +143,38 @@ export class DirectusClient {
     }
   });
 
+  private operations = createResourceMethods('operations', {
+    supportsBulk: true,
+    specialMethods: {
+      list: (client: DirectusClient, params?: any) => {
+        const queryString = params ? client.buildQueryString(params) : '';
+        return client.request('GET', `/operations${queryString}`);
+      },
+      get: (client: DirectusClient, id: string, params?: any) => {
+        const queryString = params ? client.buildQueryString(params) : '';
+        return client.request('GET', `/operations/${id}${queryString}`);
+      },
+      create: (client: DirectusClient, data: any) => {
+        return client.request('POST', '/operations', data);
+      },
+      createOperations: (client: DirectusClient, operations: any[]) => {
+        return client.request('POST', '/operations', operations);
+      },
+      update: (client: DirectusClient, id: string, data: any) => {
+        return client.request('PATCH', `/operations/${id}`, data);
+      },
+      updateOperations: (client: DirectusClient, operations: any[]) => {
+        return client.request('PATCH', '/operations', operations);
+      },
+      delete: (client: DirectusClient, id: string) => {
+        return client.request('DELETE', `/operations/${id}`);
+      },
+      deleteOperations: (client: DirectusClient, ids: string[]) => {
+        return client.request('DELETE', '/operations', ids);
+      }
+    }
+  });
+
   constructor(config: DirectusConfig) {
     this.config = config;
     this.baseUrl = config.url.replace(/\/$/, ''); // Remove trailing slash
@@ -360,6 +392,39 @@ export class DirectusClient {
 
   async triggerFlow(method: 'GET' | 'POST', id: string, bodyData?: any, queryParams?: any): Promise<any> {
     return (this.flows as any).triggerFlow(this, method, id, bodyData, queryParams);
+  }
+
+  // Operations
+  async listOperations(params?: any): Promise<any> {
+    return (this.operations as any).list(this, params);
+  }
+
+  async getOperation(id: string, params?: any): Promise<any> {
+    return (this.operations as any).get(this, id, params);
+  }
+
+  async createOperation(data: any): Promise<any> {
+    return (this.operations as any).create(this, data);
+  }
+
+  async createOperations(operations: any[]): Promise<any> {
+    return (this.operations as any).createOperations(this, operations);
+  }
+
+  async updateOperation(id: string, data: any): Promise<any> {
+    return (this.operations as any).update(this, id, data);
+  }
+
+  async updateOperations(operations: any[]): Promise<any> {
+    return (this.operations as any).updateOperations(this, operations);
+  }
+
+  async deleteOperation(id: string): Promise<any> {
+    return (this.operations as any).delete(this, id);
+  }
+
+  async deleteOperations(ids: string[]): Promise<any> {
+    return (this.operations as any).deleteOperations(this, ids);
   }
 
   public buildQueryString(params: any): string {

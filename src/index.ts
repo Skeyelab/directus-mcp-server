@@ -11,6 +11,7 @@ import { createDirectusClient, DirectusClient } from './directus-client.js';
 import { schemaTools } from './tools/schema-tools.js';
 import { contentTools } from './tools/content-tools.js';
 import { flowTools } from './tools/flow-tools.js';
+import { operationTools } from './tools/operation-tools.js';
 import { Toolset } from './types/index.js';
 
 // Load environment variables
@@ -33,7 +34,7 @@ if (!DIRECTUS_TOKEN && (!DIRECTUS_EMAIL || !DIRECTUS_PASSWORD)) {
 }
 
 // Combine all tools
-const allTools = [...schemaTools, ...contentTools, ...flowTools];
+const allTools = [...schemaTools, ...contentTools, ...flowTools, ...operationTools];
 
 // Parse and filter tools based on MCP_TOOLSETS environment variable
 function parseToolsets(envValue: string | undefined): Toolset[] {
