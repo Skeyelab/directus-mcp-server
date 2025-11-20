@@ -34,11 +34,11 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Skeyelab/directus-mcp.git"
+    "url": "https://github.com/Skeyelab/directus-mcp-server.git"
   },
-  "homepage": "https://github.com/Skeyelab/directus-mcp#readme",
+  "homepage": "https://github.com/Skeyelab/directus-mcp-server#readme",
   "bugs": {
-    "url": "https://github.com/Skeyelab/directus-mcp/issues"
+    "url": "https://github.com/Skeyelab/directus-mcp-server/issues"
   },
   "engines": {
     "node": ">=18.0.0"
