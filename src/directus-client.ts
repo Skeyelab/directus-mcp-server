@@ -70,7 +70,6 @@ export class DirectusClient {
 
   // Resource factories
   private collections = createResourceMethods('collections');
-  private fields = createResourceMethods('fields', { idParam: 'field' });
   private relations = createResourceMethods('relations');
   private items = createResourceMethods('', {
     supportsBulk: true,
