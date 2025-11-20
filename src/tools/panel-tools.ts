@@ -84,14 +84,14 @@ export const panelTools = [
     name: 'list_panels',
     description: 'List all panels that exist in Directus. Supports filtering, sorting, pagination, and search. Example: {filter: {"dashboard": {"_eq": "dashboard-uuid"}}, sort: ["position_y", "position_x"], limit: 20}',
     inputSchema: ListPanelsSchema,
-    toolsets: ['default', 'content'],
+    toolsets: ['dashboards'],
     handler: (client, args) => client.listPanels(args),
   }),
   createTool({
     name: 'get_panel',
     description: 'Get a single panel by ID from Directus. Optionally specify fields to return and metadata options.',
     inputSchema: GetPanelSchema,
-    toolsets: ['default', 'content'],
+    toolsets: ['dashboards'],
     handler: async (client, args) => {
       const { id, ...params } = args;
       return client.getPanel(id, params);
@@ -101,21 +101,21 @@ export const panelTools = [
     name: 'create_panel',
     description: 'Create a new panel in Directus. Provide the panel data including dashboard, name, type, position, and dimensions. Example: {dashboard: "dashboard-uuid", name: "Sales Chart", type: "time-series", position_x: 0, position_y: 0, width: 6, height: 4}',
     inputSchema: CreatePanelSchema,
-    toolsets: ['default', 'content'],
+    toolsets: ['dashboards'],
     handler: (client, args) => client.createPanel(args),
   }),
   createTool({
     name: 'create_panels',
     description: 'Create multiple panels in Directus at once. More efficient than creating panels one by one. Example: {panels: [{dashboard: "uuid-1", name: "Panel 1", type: "metric", position_x: 0, position_y: 0, width: 3, height: 2}, {dashboard: "uuid-1", name: "Panel 2", type: "chart", position_x: 3, position_y: 0, width: 3, height: 2}]}',
     inputSchema: CreatePanelsSchema,
-    toolsets: ['default', 'content'],
+    toolsets: ['dashboards'],
     handler: async (client, args) => client.createPanels(args.panels),
   }),
   createTool({
     name: 'update_panel',
     description: 'Update an existing panel in Directus. Provide the panel ID and fields to update. Example: {id: "panel-uuid", name: "Updated Panel Name", position_x: 1, position_y: 2, width: 8}',
     inputSchema: UpdatePanelSchema,
-    toolsets: ['default', 'content'],
+    toolsets: ['dashboards'],
     handler: async (client, args) => {
       const { id, ...data } = args;
       return client.updatePanel(id, data);
@@ -125,14 +125,14 @@ export const panelTools = [
     name: 'update_panels',
     description: 'Update multiple panels in Directus at once. Each panel must include an id field. Example: {panels: [{id: "uuid-1", position_x: 2, width: 4}, {id: "uuid-2", name: "Updated Name", height: 3}]}',
     inputSchema: UpdatePanelsSchema,
-    toolsets: ['default', 'content'],
+    toolsets: ['dashboards'],
     handler: async (client, args) => client.updatePanels(args.panels),
   }),
   createActionTool({
     name: 'delete_panel',
     description: 'Delete a panel from Directus by ID. This action cannot be undone.',
     inputSchema: DeletePanelSchema,
-    toolsets: ['default', 'content'],
+    toolsets: ['dashboards'],
     handler: async (client, args) => client.deletePanel(args.id),
     successMessage: (args) => `Panel ${args.id} deleted successfully`,
   }),
@@ -140,7 +140,7 @@ export const panelTools = [
     name: 'delete_panels',
     description: 'Delete multiple panels from Directus at once by their IDs. This action cannot be undone. Example: {ids: ["uuid-1", "uuid-2", "uuid-3"]}',
     inputSchema: DeletePanelsSchema,
-    toolsets: ['default', 'content'],
+    toolsets: ['dashboards'],
     handler: async (client, args) => client.deletePanels(args.ids),
     successMessage: (args) => `${args.ids.length} panels deleted successfully`,
   }),
