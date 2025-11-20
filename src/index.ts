@@ -10,6 +10,7 @@ import dotenv from 'dotenv';
 import { createDirectusClient, DirectusClient } from './directus-client.js';
 import { schemaTools } from './tools/schema-tools.js';
 import { contentTools } from './tools/content-tools.js';
+import { flowTools } from './tools/flow-tools.js';
 
 // Load environment variables
 dotenv.config();
@@ -31,7 +32,7 @@ if (!DIRECTUS_TOKEN && (!DIRECTUS_EMAIL || !DIRECTUS_PASSWORD)) {
 }
 
 // Combine all tools
-const allTools = [...schemaTools, ...contentTools];
+const allTools = [...schemaTools, ...contentTools, ...flowTools];
 
 // Initialize Directus client
 let directusClient: DirectusClient;
