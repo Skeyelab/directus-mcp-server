@@ -3,30 +3,36 @@ import { DirectusClient, createDirectusClient } from './directus-client.js';
 import type { DirectusConfig } from './types/index.js';
 
 // Mock @directus/sdk
-vi.mock('@directus/sdk', () => ({
-  createDirectus: vi.fn(() => ({
-    with: vi.fn((plugin: any) => {
-      if (plugin === 'rest') {
-        return {
-          with: vi.fn((authPlugin: any) => {
-            if (authPlugin?.login) {
-              return {
-                login: vi.fn(),
-              };
-            }
-            return {};
-          }),
-        };
-      }
-      return {};
-    }),
-  })),
-  rest: vi.fn(() => 'rest'),
-  authentication: vi.fn(() => ({
-    login: vi.fn(),
-  })),
-  staticToken: vi.fn(() => ({})),
-}));
+const mockLogin = vi.fn();
+const mockClientWithAuth = {
+  login: mockLogin,
+};
+
+vi.mock('@directus/sdk', () => {
+  const mockAuthPlugin = {};
+  return {
+    createDirectus: vi.fn(() => ({
+      with: vi.fn((plugin: unknown) => {
+        if (plugin === 'rest') {
+          return {
+            with: vi.fn((authPlugin: unknown) => {
+              // When authentication plugin is passed, return client with login method
+              if (authPlugin === mockAuthPlugin) {
+                return mockClientWithAuth;
+              }
+              // For staticToken, return empty object
+              return {};
+            }),
+          };
+        }
+        return {};
+      }),
+    })),
+    rest: vi.fn(() => 'rest'),
+    authentication: vi.fn(() => mockAuthPlugin),
+    staticToken: vi.fn(() => ({})),
+  };
+});
 
 describe('DirectusClient', () => {
   let mockFetch: ReturnType<typeof vi.fn>;
@@ -87,12 +93,12 @@ describe('DirectusClient', () => {
   });
 
   describe('authenticate', () => {
+    beforeEach(() => {
+      mockLogin.mockClear();
+    });
+
     it('should authenticate with email/password', async () => {
-      const { authentication } = await import('@directus/sdk');
-      const mockLogin = vi.fn().mockResolvedValue(undefined);
-      vi.mocked(authentication).mockReturnValue({
-        login: mockLogin,
-      } as any);
+      mockLogin.mockResolvedValue(undefined);
 
       const config: DirectusConfig = {
         url: baseUrl,
@@ -111,14 +117,11 @@ describe('DirectusClient', () => {
       };
       const client = new DirectusClient(config);
       await client.authenticate(); // Should not throw
+      expect(mockLogin).not.toHaveBeenCalled();
     });
 
     it('should throw error on authentication failure', async () => {
-      const { authentication } = await import('@directus/sdk');
-      const mockLogin = vi.fn().mockRejectedValue(new Error('Invalid credentials'));
-      vi.mocked(authentication).mockReturnValue({
-        login: mockLogin,
-      } as any);
+      mockLogin.mockRejectedValue(new Error('Invalid credentials'));
 
       const config: DirectusConfig = {
         url: baseUrl,
@@ -915,7 +918,9 @@ describe('DirectusClient', () => {
 
       await client.queryItems('articles', { fields: ['id', 'title'] });
       const callUrl = mockFetch.mock.calls[0][0] as string;
-      expect(callUrl).toContain('fields=id,title');
+      // URLSearchParams encodes commas, so check for encoded version
+      expect(callUrl).toContain('fields=');
+      expect(decodeURIComponent(callUrl)).toContain('fields=id,title');
     });
 
     it('should build query string with filter', async () => {
@@ -954,7 +959,9 @@ describe('DirectusClient', () => {
 
       await client.queryItems('articles', { sort: ['-date_created', 'title'] });
       const callUrl = mockFetch.mock.calls[0][0] as string;
-      expect(callUrl).toContain('sort=-date_created,title');
+      // URLSearchParams encodes commas, so check for encoded version
+      expect(callUrl).toContain('sort=');
+      expect(decodeURIComponent(callUrl)).toContain('sort=-date_created,title');
     });
 
     it('should build query string with limit and offset', async () => {
@@ -1003,7 +1010,9 @@ describe('DirectusClient', () => {
 
       await client.queryItems('articles', { groupBy: ['status', 'category'] });
       const callUrl = mockFetch.mock.calls[0][0] as string;
-      expect(callUrl).toContain('groupBy=status,category');
+      // URLSearchParams encodes commas, so check for encoded version
+      expect(callUrl).toContain('groupBy=');
+      expect(decodeURIComponent(callUrl)).toContain('groupBy=status,category');
     });
 
     it('should build query string with deep', async () => {
@@ -1033,11 +1042,7 @@ describe('DirectusClient', () => {
 
   describe('createDirectusClient', () => {
     it('should create and authenticate client', async () => {
-      const { authentication } = await import('@directus/sdk');
-      const mockLogin = vi.fn().mockResolvedValue(undefined);
-      vi.mocked(authentication).mockReturnValue({
-        login: mockLogin,
-      } as any);
+      mockLogin.mockResolvedValue(undefined);
 
       const config: DirectusConfig = {
         url: baseUrl,
@@ -1047,7 +1052,7 @@ describe('DirectusClient', () => {
 
       const client = await createDirectusClient(config);
       expect(client).toBeInstanceOf(DirectusClient);
-      expect(mockLogin).toHaveBeenCalled();
+      expect(mockLogin).toHaveBeenCalledWith('test@example.com', 'test-password');
     });
   });
 });

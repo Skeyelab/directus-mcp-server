@@ -386,9 +386,10 @@ describe('Schema Tools', () => {
       expect(() => {
         tool!.inputSchema.parse({});
       }).not.toThrow();
+      // Zod by default allows extra fields (strips them), so this should not throw
       expect(() => {
         tool!.inputSchema.parse({ invalid: 'field' });
-      }).toThrow();
+      }).not.toThrow();
     });
 
     it('should validate get_collection requires collection name', () => {

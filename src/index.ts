@@ -122,7 +122,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 });
 
 // Helper function to convert Zod types to JSON Schema types
-function getZodType(zodSchema: any): string {
+export function getZodType(zodSchema: any): string {
   const typeName = zodSchema._def?.typeName;
 
   switch (typeName) {
