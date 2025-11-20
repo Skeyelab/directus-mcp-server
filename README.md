@@ -59,6 +59,69 @@ DIRECTUS_TOKEN=your_static_token_here
    - Use for development or when static tokens aren't available
    - Set `DIRECTUS_EMAIL` and `DIRECTUS_PASSWORD` environment variables
 
+### Toolset Configuration
+
+The Directus MCP server organizes tools into logical toolsets, similar to GitHub's MCP implementation. This allows you to control which tools are exposed to the MCP client.
+
+**Available Toolsets:**
+- `default` - Contains schema and content tools (default behavior when no toolset is specified)
+- `schema` - Schema management tools (collections, fields, relations)
+- `content` - Content management tools (items CRUD operations)
+- `flow` - Flow management tools (workflow automation) - NOT included in default toolset
+
+**Default Behavior:**
+When `MCP_TOOLSETS` is not set or empty, only tools in the `default` toolset are exposed. The `default` toolset contains schema and content tools, but **not** flow tools. Flow tools must be explicitly requested by including `flow` in the `MCP_TOOLSETS` environment variable.
+
+**Configuration:**
+Set the `MCP_TOOLSETS` environment variable to a comma-separated list of toolsets:
+
+```env
+# Expose only schema tools
+MCP_TOOLSETS=schema
+
+# Expose schema and content tools
+MCP_TOOLSETS=schema,content
+
+# Expose all toolsets (includes flow tools)
+MCP_TOOLSETS=default,flow
+# OR
+MCP_TOOLSETS=schema,content,flow
+```
+
+**Examples:**
+
+```json
+{
+  "mcpServers": {
+    "directus-schema": {
+      "command": "node",
+      "args": ["/path/to/directus-mcp/dist/index.js"],
+      "env": {
+        "DIRECTUS_URL": "https://your-directus-instance.com",
+        "DIRECTUS_TOKEN": "your_token",
+        "MCP_TOOLSETS": "schema"
+      }
+    },
+    "directus-content": {
+      "command": "node",
+      "args": ["/path/to/directus-mcp/dist/index.js"],
+      "env": {
+        "DIRECTUS_URL": "https://your-directus-instance.com",
+        "DIRECTUS_TOKEN": "your_token",
+        "MCP_TOOLSETS": "content"
+      }
+    }
+  }
+}
+```
+
+**Notes:**
+- Toolset names are case-insensitive
+- Invalid toolset names are ignored (with a warning)
+- If all requested toolsets are invalid, the server defaults to the `default` toolset
+- Schema and content tools belong to both `default` and their specific toolset
+- Flow tools belong ONLY to the `flow` toolset (not in `default`)
+
 ## Building
 
 ```bash
@@ -92,7 +155,8 @@ Add to your MCP client configuration (e.g., Claude Desktop, Cline):
       "args": ["-y", "directus-mcp-server"],
       "env": {
         "DIRECTUS_URL": "https://your-directus-instance.com",
-        "DIRECTUS_TOKEN": "your_static_token_here"
+        "DIRECTUS_TOKEN": "your_static_token_here",
+        "MCP_TOOLSETS": "default"
       }
     }
   }
@@ -107,7 +171,8 @@ Add to your MCP client configuration (e.g., Claude Desktop, Cline):
       "command": "directus-mcp",
       "env": {
         "DIRECTUS_URL": "https://your-directus-instance.com",
-        "DIRECTUS_TOKEN": "your_static_token_here"
+        "DIRECTUS_TOKEN": "your_static_token_here",
+        "MCP_TOOLSETS": "default"
       }
     }
   }
@@ -123,7 +188,8 @@ Add to your MCP client configuration (e.g., Claude Desktop, Cline):
       "args": ["/absolute/path/to/directus-mcp/dist/index.js"],
       "env": {
         "DIRECTUS_URL": "https://your-directus-instance.com",
-        "DIRECTUS_TOKEN": "your_static_token_here"
+        "DIRECTUS_TOKEN": "your_static_token_here",
+        "MCP_TOOLSETS": "default"
       }
     }
   }

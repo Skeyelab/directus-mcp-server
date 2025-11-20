@@ -11,6 +11,7 @@ import { createDirectusClient, DirectusClient } from './directus-client.js';
 import { schemaTools } from './tools/schema-tools.js';
 import { contentTools } from './tools/content-tools.js';
 import { flowTools } from './tools/flow-tools.js';
+import { Toolset } from './types/index.js';
 
 // Load environment variables
 dotenv.config();
@@ -33,6 +34,56 @@ if (!DIRECTUS_TOKEN && (!DIRECTUS_EMAIL || !DIRECTUS_PASSWORD)) {
 
 // Combine all tools
 const allTools = [...schemaTools, ...contentTools, ...flowTools];
+
+// Parse and filter tools based on MCP_TOOLSETS environment variable
+function parseToolsets(envValue: string | undefined): Toolset[] {
+  if (!envValue || envValue.trim() === '') {
+    // Default behavior: only expose 'default' toolset
+    return ['default'];
+  }
+
+  const requestedToolsets = envValue
+    .split(',')
+    .map((t) => t.trim().toLowerCase())
+    .filter((t) => t.length > 0);
+
+  // Validate toolset names (ignore invalid ones)
+  const validToolsets: Toolset[] = ['default', 'schema', 'content', 'flow'];
+  const filtered = requestedToolsets.filter((t) =>
+    validToolsets.includes(t as Toolset)
+  ) as Toolset[];
+
+  if (filtered.length === 0) {
+    // If all requested toolsets are invalid, default to 'default'
+    console.error(
+      `Warning: No valid toolsets found in MCP_TOOLSETS="${envValue}". Defaulting to 'default' toolset.`
+    );
+    return ['default'];
+  }
+
+  // Warn about invalid toolset names
+  const invalid = requestedToolsets.filter(
+    (t) => !validToolsets.includes(t as Toolset)
+  );
+  if (invalid.length > 0) {
+    console.error(
+      `Warning: Invalid toolset names ignored: ${invalid.join(', ')}. Valid toolsets are: ${validToolsets.join(', ')}`
+    );
+  }
+
+  return filtered;
+}
+
+function filterToolsByToolsets(tools: typeof allTools, toolsets: Toolset[]) {
+  return tools.filter((tool) => {
+    // Tool must belong to at least one of the requested toolsets
+    return tool.toolsets?.some((toolset) => toolsets.includes(toolset)) ?? false;
+  });
+}
+
+// Get enabled toolsets from environment
+const enabledToolsets = parseToolsets(process.env.MCP_TOOLSETS);
+const enabledTools = filterToolsByToolsets(allTools, enabledToolsets);
 
 // Initialize Directus client
 let directusClient: DirectusClient;
@@ -68,7 +119,7 @@ const server = new Server(
 // Register tool list handler
 server.setRequestHandler(ListToolsRequestSchema, async () => {
   return {
-    tools: allTools.map((tool) => ({
+    tools: enabledTools.map((tool) => ({
       name: tool.name,
       description: tool.description,
       inputSchema: {
@@ -97,8 +148,15 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const { name, arguments: args } = request.params;
 
-  const tool = allTools.find((t) => t.name === name);
+  const tool = enabledTools.find((t) => t.name === name);
   if (!tool) {
+    // Check if tool exists but is not in enabled toolsets
+    const toolExists = allTools.find((t) => t.name === name);
+    if (toolExists && toolExists.toolsets) {
+      throw new Error(
+        `Tool "${name}" is not available. It belongs to toolsets: ${toolExists.toolsets.join(', ')}. Enabled toolsets: ${enabledToolsets.join(', ')}`
+      );
+    }
     throw new Error(`Tool not found: ${name}`);
   }
 

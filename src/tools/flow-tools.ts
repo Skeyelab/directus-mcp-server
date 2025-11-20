@@ -73,6 +73,7 @@ export const flowTools = [
     name: 'list_flows',
     description: 'List all flows that exist in Directus. Supports filtering, sorting, pagination, and search. Example: {filter: {"status": {"_eq": "active"}}, sort: ["-date_created"], limit: 10}',
     inputSchema: ListFlowsSchema,
+    toolsets: ['flow'] as const,
     handler: async (client: DirectusClient, args: any) => {
       const result = await client.listFlows(args);
       return {
@@ -89,6 +90,7 @@ export const flowTools = [
     name: 'get_flow',
     description: 'Get a single flow by ID from Directus. Optionally specify fields to return and metadata options.',
     inputSchema: GetFlowSchema,
+    toolsets: ['flow'] as const,
     handler: async (client: DirectusClient, args: any) => {
       const { id, ...params } = args;
       const result = await client.getFlow(id, params);
@@ -106,6 +108,7 @@ export const flowTools = [
     name: 'create_flow',
     description: 'Create a new flow in Directus. Provide the flow data including name, trigger type, and optional configuration. Example: {name: "Update Articles Flow", trigger: "manual", status: "active", accountability: "$trigger"}',
     inputSchema: CreateFlowSchema,
+    toolsets: ['flow'] as const,
     handler: async (client: DirectusClient, args: any) => {
       const result = await client.createFlow(args);
       return {
@@ -122,6 +125,7 @@ export const flowTools = [
     name: 'create_flows',
     description: 'Create multiple flows in Directus at once. More efficient than creating flows one by one. Example: {flows: [{name: "Flow 1", trigger: "manual"}, {name: "Flow 2", trigger: "webhook"}]}',
     inputSchema: CreateFlowsSchema,
+    toolsets: ['flow'] as const,
     handler: async (client: DirectusClient, args: any) => {
       const result = await client.createFlows(args.flows);
       return {
@@ -138,6 +142,7 @@ export const flowTools = [
     name: 'update_flow',
     description: 'Update an existing flow in Directus. Provide the flow ID and fields to update. Example: {id: "flow-uuid", status: "inactive", name: "Updated Flow Name"}',
     inputSchema: UpdateFlowSchema,
+    toolsets: ['flow'] as const,
     handler: async (client: DirectusClient, args: any) => {
       const { id, ...data } = args;
       const result = await client.updateFlow(id, data);
@@ -155,6 +160,7 @@ export const flowTools = [
     name: 'update_flows',
     description: 'Update multiple flows in Directus at once. Each flow must include an id field. Example: {flows: [{id: "uuid-1", status: "active"}, {id: "uuid-2", status: "inactive"}]}',
     inputSchema: UpdateFlowsSchema,
+    toolsets: ['flow'] as const,
     handler: async (client: DirectusClient, args: any) => {
       const result = await client.updateFlows(args.flows);
       return {
@@ -171,6 +177,7 @@ export const flowTools = [
     name: 'delete_flow',
     description: 'Delete a flow from Directus by ID. This action cannot be undone.',
     inputSchema: DeleteFlowSchema,
+    toolsets: ['flow'] as const,
     handler: async (client: DirectusClient, args: any) => {
       await client.deleteFlow(args.id);
       return {
@@ -187,6 +194,7 @@ export const flowTools = [
     name: 'delete_flows',
     description: 'Delete multiple flows from Directus at once by their IDs. This action cannot be undone. Example: {ids: ["uuid-1", "uuid-2", "uuid-3"]}',
     inputSchema: DeleteFlowsSchema,
+    toolsets: ['flow'] as const,
     handler: async (client: DirectusClient, args: any) => {
       await client.deleteFlows(args.ids);
       return {
@@ -203,6 +211,7 @@ export const flowTools = [
     name: 'trigger_flow',
     description: 'Trigger a flow with GET or POST webhook trigger. For GET: {id: "flow-uuid", method: "GET"}. For POST: {id: "flow-uuid", method: "POST", data: {key: "value"}}',
     inputSchema: TriggerFlowSchema,
+    toolsets: ['flow'] as const,
     handler: async (client: DirectusClient, args: any) => {
       const { id, method = 'GET', data, fields, meta } = args;
       // Query params (fields, meta) apply to both GET and POST

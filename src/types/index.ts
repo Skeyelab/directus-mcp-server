@@ -116,3 +116,13 @@ export interface QueryParams {
   deep?: Record<string, any>;
 }
 
+export type Toolset = 'default' | 'schema' | 'content' | 'flow';
+
+export interface MCPTool {
+  name: string;
+  description: string;
+  inputSchema: any;
+  toolsets: Toolset[];
+  handler: (client: any, args: any) => Promise<any>;
+}
+

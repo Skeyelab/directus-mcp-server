@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { schemaTools } from './tools/schema-tools.js';
 import { contentTools } from './tools/content-tools.js';
 import { flowTools } from './tools/flow-tools.js';
+import { Toolset } from './types/index.js';
 
 // Import getZodType directly to avoid executing index.ts
 // We'll test it by recreating the function logic
@@ -188,6 +189,231 @@ describe('Index Helper Functions', () => {
       expect(result.content[0]).toHaveProperty('type');
       expect(result.content[0]).toHaveProperty('text');
       expect(result.content[0].type).toBe('text');
+    });
+  });
+
+  describe('Toolset Support', () => {
+    const allTools = [...schemaTools, ...contentTools, ...flowTools];
+
+    it('should have schema and content tools assigned to default toolset', () => {
+      [...schemaTools, ...contentTools].forEach((tool) => {
+        expect(tool.toolsets).toContain('default');
+      });
+    });
+
+    it('should have schema tools assigned to schema toolset', () => {
+      schemaTools.forEach((tool) => {
+        expect(tool.toolsets).toContain('schema');
+        expect(tool.toolsets).toContain('default');
+      });
+    });
+
+    it('should have content tools assigned to content toolset', () => {
+      contentTools.forEach((tool) => {
+        expect(tool.toolsets).toContain('content');
+        expect(tool.toolsets).toContain('default');
+      });
+    });
+
+    it('should have flow tools assigned to flow toolset only (not default)', () => {
+      flowTools.forEach((tool) => {
+        expect(tool.toolsets).toContain('flow');
+        expect(tool.toolsets).not.toContain('default');
+      });
+    });
+
+    it('should have valid toolset values', () => {
+      const validToolsets: Toolset[] = ['default', 'schema', 'content', 'flow'];
+      allTools.forEach((tool) => {
+        if (tool.toolsets) {
+          tool.toolsets.forEach((toolset) => {
+            expect(validToolsets).toContain(toolset);
+          });
+        }
+      });
+    });
+  });
+
+  describe('Toolset Filtering Logic', () => {
+    const allTools = [...schemaTools, ...contentTools, ...flowTools];
+
+    function parseToolsets(envValue: string | undefined): Toolset[] {
+      if (!envValue || envValue.trim() === '') {
+        return ['default'];
+      }
+
+      const requestedToolsets = envValue
+        .split(',')
+        .map((t) => t.trim().toLowerCase())
+        .filter((t) => t.length > 0);
+
+      const validToolsets: Toolset[] = ['default', 'schema', 'content', 'flow'];
+      const filtered = requestedToolsets.filter((t) =>
+        validToolsets.includes(t as Toolset)
+      ) as Toolset[];
+
+      if (filtered.length === 0) {
+        return ['default'];
+      }
+
+      return filtered;
+    }
+
+    function filterToolsByToolsets(
+      tools: typeof allTools,
+      toolsets: Toolset[]
+    ) {
+      return tools.filter((tool) => {
+        return tool.toolsets?.some((toolset) => toolsets.includes(toolset)) ?? false;
+      });
+    }
+
+    describe('parseToolsets', () => {
+      it('should return default toolset when env value is undefined', () => {
+        expect(parseToolsets(undefined)).toEqual(['default']);
+      });
+
+      it('should return default toolset when env value is empty string', () => {
+        expect(parseToolsets('')).toEqual(['default']);
+        expect(parseToolsets('   ')).toEqual(['default']);
+      });
+
+      it('should parse single toolset', () => {
+        expect(parseToolsets('schema')).toEqual(['schema']);
+        expect(parseToolsets('content')).toEqual(['content']);
+        expect(parseToolsets('flow')).toEqual(['flow']);
+        expect(parseToolsets('default')).toEqual(['default']);
+      });
+
+      it('should parse multiple toolsets', () => {
+        expect(parseToolsets('schema,content')).toEqual(['schema', 'content']);
+        expect(parseToolsets('default,flow')).toEqual(['default', 'flow']);
+        expect(parseToolsets('schema,content,flow')).toEqual(['schema', 'content', 'flow']);
+      });
+
+      it('should handle whitespace in toolset list', () => {
+        expect(parseToolsets('schema , content')).toEqual(['schema', 'content']);
+        expect(parseToolsets('  schema  ,  content  ')).toEqual(['schema', 'content']);
+      });
+
+      it('should be case insensitive', () => {
+        expect(parseToolsets('SCHEMA')).toEqual(['schema']);
+        expect(parseToolsets('Schema,Content')).toEqual(['schema', 'content']);
+      });
+
+      it('should filter out invalid toolset names', () => {
+        expect(parseToolsets('schema,invalid,content')).toEqual(['schema', 'content']);
+        expect(parseToolsets('invalid1,invalid2')).toEqual(['default']);
+      });
+
+      it('should return default when all toolsets are invalid', () => {
+        expect(parseToolsets('invalid1,invalid2')).toEqual(['default']);
+      });
+    });
+
+    describe('filterToolsByToolsets', () => {
+      it('should return schema and content tools (but not flow tools) when filtering by default toolset', () => {
+        const filtered = filterToolsByToolsets(allTools, ['default']);
+        expect(filtered.length).toBe(schemaTools.length + contentTools.length);
+        filtered.forEach((tool) => {
+          expect(tool.toolsets).toContain('default');
+          expect(tool.toolsets).not.toContain('flow');
+        });
+      });
+
+      it('should return only schema tools when filtering by schema toolset', () => {
+        const filtered = filterToolsByToolsets(allTools, ['schema']);
+        expect(filtered.length).toBe(schemaTools.length);
+        filtered.forEach((tool) => {
+          expect(tool.toolsets).toContain('schema');
+        });
+      });
+
+      it('should return only content tools when filtering by content toolset', () => {
+        const filtered = filterToolsByToolsets(allTools, ['content']);
+        expect(filtered.length).toBe(contentTools.length);
+        filtered.forEach((tool) => {
+          expect(tool.toolsets).toContain('content');
+        });
+      });
+
+      it('should return only flow tools when filtering by flow toolset', () => {
+        const filtered = filterToolsByToolsets(allTools, ['flow']);
+        expect(filtered.length).toBe(flowTools.length);
+        filtered.forEach((tool) => {
+          expect(tool.toolsets).toContain('flow');
+        });
+      });
+
+      it('should return tools from multiple toolsets', () => {
+        const filtered = filterToolsByToolsets(allTools, [
+          'schema',
+          'content',
+        ] as Toolset[]);
+        expect(filtered.length).toBe(schemaTools.length + contentTools.length);
+        filtered.forEach((tool) => {
+          const toolToolsets = tool.toolsets as readonly Toolset[];
+          expect(
+            toolToolsets.includes('schema') || toolToolsets.includes('content')
+          ).toBe(true);
+        });
+      });
+
+      it('should not return duplicate tools when multiple toolsets are specified', () => {
+        const filtered = filterToolsByToolsets(allTools, ['default', 'schema']);
+        const toolNames = filtered.map((t) => t.name);
+        const uniqueNames = new Set(toolNames);
+        expect(toolNames.length).toBe(uniqueNames.size);
+      });
+
+      it('should return empty array when filtering by non-existent toolset', () => {
+        // This shouldn't happen with valid toolsets, but test the behavior
+        const filtered = filterToolsByToolsets(allTools, [] as Toolset[]);
+        expect(filtered.length).toBe(0);
+      });
+    });
+
+    describe('Default Behavior', () => {
+      it('should expose schema and content tools (but not flow tools) when no toolset is specified (default toolset)', () => {
+        const toolsets = parseToolsets(undefined);
+        const filtered = filterToolsByToolsets(allTools, toolsets);
+        expect(filtered.length).toBe(schemaTools.length + contentTools.length);
+        filtered.forEach((tool) => {
+          expect(tool.toolsets).toContain('default');
+        });
+      });
+
+      it('should expose only default tools (schema and content, not flow) when default toolset is explicitly requested', () => {
+        const toolsets = parseToolsets('default');
+        const filtered = filterToolsByToolsets(allTools, toolsets);
+        expect(filtered.length).toBe(schemaTools.length + contentTools.length);
+        filtered.forEach((tool) => {
+          expect(tool.toolsets).toContain('default');
+          expect(tool.toolsets).not.toContain('flow');
+        });
+      });
+    });
+
+    describe('Edge Cases', () => {
+      it('should handle empty toolset string', () => {
+        const toolsets = parseToolsets('');
+        expect(toolsets).toEqual(['default']);
+      });
+
+      it('should handle comma-only string', () => {
+        const toolsets = parseToolsets(',,');
+        expect(toolsets).toEqual(['default']);
+      });
+
+      it('should handle mixed valid and invalid toolsets', () => {
+        const toolsets = parseToolsets('schema,invalid,content,also-invalid');
+        expect(toolsets).toEqual(['schema', 'content']);
+      });
+
+      it('should handle toolsets with special characters', () => {
+        const toolsets = parseToolsets('schema@invalid,content');
+        expect(toolsets).toEqual(['content']);
+      });
     });
   });
 });
