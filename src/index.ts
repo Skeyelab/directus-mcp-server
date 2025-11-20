@@ -51,10 +51,15 @@ function parseToolsets(envValue: string | undefined): Toolset[] {
     .filter((t) => t.length > 0);
 
   // Validate toolset names (ignore invalid ones)
-  const validToolsets: Toolset[] = ['default', 'schema', 'content', 'flow', 'collections', 'fields', 'relations'];
+  const validToolsets: Toolset[] = ['default', 'schema', 'content', 'flow', 'collections', 'fields', 'relations', 'dashboards', 'all'];
   const filtered = requestedToolsets.filter((t) =>
     validToolsets.includes(t as Toolset)
   ) as Toolset[];
+
+  // If 'all' is requested, return it alone (it includes everything)
+  if (filtered.includes('all')) {
+    return ['all'];
+  }
 
   if (filtered.length === 0) {
     // If all requested toolsets are invalid, default to 'default'
@@ -78,6 +83,11 @@ function parseToolsets(envValue: string | undefined): Toolset[] {
 }
 
 function filterToolsByToolsets(tools: typeof allTools, toolsets: Toolset[]) {
+  // If 'all' is requested, return all tools regardless of their toolset membership
+  if (toolsets.includes('all')) {
+    return tools;
+  }
+
   return tools.filter((tool) => {
     // Tool must belong to at least one of the requested toolsets
     return tool.toolsets?.some((toolset) => toolsets.includes(toolset)) ?? false;
@@ -87,6 +97,17 @@ function filterToolsByToolsets(tools: typeof allTools, toolsets: Toolset[]) {
 // Get enabled toolsets from environment
 const enabledToolsets = parseToolsets(process.env.MCP_TOOLSETS);
 const enabledTools = filterToolsByToolsets(allTools, enabledToolsets);
+
+// Debug logging
+console.error(`[Directus MCP] Total tools available: ${allTools.length}`);
+console.error(`[Directus MCP] Enabled toolsets: ${enabledToolsets.join(', ')}`);
+console.error(`[Directus MCP] Enabled tools: ${enabledTools.length}`);
+if (enabledToolsets.includes('dashboards')) {
+  const dashboardToolCount = enabledTools.filter(t =>
+    t.toolsets?.includes('dashboards')
+  ).length;
+  console.error(`[Directus MCP] Dashboard tools enabled: ${dashboardToolCount}`);
+}
 
 // Initialize Directus client
 let directusClient: DirectusClient;

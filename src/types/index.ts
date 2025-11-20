@@ -124,7 +124,7 @@ export interface QueryParams {
   deep?: Record<string, any>;
 }
 
-export type Toolset = 'default' | 'schema' | 'content' | 'flow' | 'collections' | 'fields' | 'relations' | 'dashboards';
+export type Toolset = 'default' | 'schema' | 'content' | 'flow' | 'collections' | 'fields' | 'relations' | 'dashboards' | 'all';
 
 export interface MCPTool {
   name: string;

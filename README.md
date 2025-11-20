@@ -71,9 +71,11 @@ The Directus MCP server organizes tools into logical toolsets, similar to GitHub
 - `schema` - Schema snapshot and diff tools (get snapshot, get diff, apply diff) - NOT included in default toolset
 - `content` - Content management tools (items CRUD operations)
 - `flow` - Flow management tools (workflow automation) - NOT included in default toolset
+- `dashboards` - Dashboard and panel management tools (list, get, create, update, delete dashboards and panels) - NOT included in default toolset
+- `all` - All available tools regardless of toolset membership
 
 **Default Behavior:**
-When `MCP_TOOLSETS` is not set or empty, only tools in the `default` toolset are exposed. The `default` toolset contains collections, fields, relations, and content tools, but **not** schema or flow tools. Schema and flow tools must be explicitly requested by including `schema` or `flow` in the `MCP_TOOLSETS` environment variable.
+When `MCP_TOOLSETS` is not set or empty, only tools in the `default` toolset are exposed. The `default` toolset contains collections, fields, relations, and content tools, but **not** schema, flow, or dashboard tools. Schema, flow, and dashboard tools must be explicitly requested by including `schema`, `flow`, or `dashboards` in the `MCP_TOOLSETS` environment variable.
 
 **Configuration:**
 Set the `MCP_TOOLSETS` environment variable to a comma-separated list of toolsets:
@@ -88,13 +90,18 @@ MCP_TOOLSETS=schema
 # Expose collections and fields tools
 MCP_TOOLSETS=collections,fields
 
+# Expose only dashboard and panel tools
+MCP_TOOLSETS=dashboards
+
 # Expose all schema-related toolsets
 MCP_TOOLSETS=collections,fields,relations,schema
 
-# Expose all toolsets (includes flow tools)
-MCP_TOOLSETS=default,flow
+# Expose all toolsets (includes flow and dashboard tools)
+MCP_TOOLSETS=default,flow,dashboards
 # OR
-MCP_TOOLSETS=collections,fields,relations,schema,content,flow
+MCP_TOOLSETS=collections,fields,relations,schema,content,flow,dashboards
+# OR simply use 'all' to expose everything
+MCP_TOOLSETS=all
 ```
 
 **Examples:**
@@ -129,7 +136,7 @@ MCP_TOOLSETS=collections,fields,relations,schema,content,flow
 - Invalid toolset names are ignored (with a warning)
 - If all requested toolsets are invalid, the server defaults to the `default` toolset
 - Collections, fields, relations, and content tools belong to both `default` and their specific toolset
-- Schema and flow tools belong ONLY to their respective toolsets (not in `default`)
+- Schema, flow, and dashboard tools belong ONLY to their respective toolsets (not in `default`)
 
 ## Building
 

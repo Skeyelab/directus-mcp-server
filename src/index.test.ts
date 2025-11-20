@@ -3,6 +3,8 @@ import { z } from 'zod';
 import { schemaTools } from './tools/schema-tools.js';
 import { contentTools } from './tools/content-tools.js';
 import { flowTools } from './tools/flow-tools.js';
+import { dashboardTools } from './tools/dashboard-tools.js';
+import { panelTools } from './tools/panel-tools.js';
 import { Toolset } from './types/index.js';
 
 // Import getZodType directly to avoid executing index.ts
@@ -85,19 +87,19 @@ describe('Index Helper Functions', () => {
 
   describe('Tool Registration', () => {
     it('should have all tools registered', () => {
-      const allTools = [...schemaTools, ...contentTools, ...flowTools];
+      const allTools = [...schemaTools, ...contentTools, ...flowTools, ...dashboardTools, ...panelTools];
       expect(allTools.length).toBeGreaterThan(0);
     });
 
     it('should have unique tool names', () => {
-      const allTools = [...schemaTools, ...contentTools, ...flowTools];
+      const allTools = [...schemaTools, ...contentTools, ...flowTools, ...dashboardTools, ...panelTools];
       const names = allTools.map((t) => t.name);
       const uniqueNames = new Set(names);
       expect(names.length).toBe(uniqueNames.size);
     });
 
     it('should have all tools with required properties', () => {
-      const allTools = [...schemaTools, ...contentTools, ...flowTools];
+      const allTools = [...schemaTools, ...contentTools, ...flowTools, ...dashboardTools, ...panelTools];
       allTools.forEach((tool) => {
         expect(tool).toHaveProperty('name');
         expect(tool).toHaveProperty('description');
@@ -126,11 +128,23 @@ describe('Index Helper Functions', () => {
       expect(flowTools.some((t) => t.name === 'list_flows')).toBe(true);
       expect(flowTools.some((t) => t.name === 'create_flow')).toBe(true);
     });
+
+    it('should have dashboard tools registered', () => {
+      expect(dashboardTools.length).toBeGreaterThan(0);
+      expect(dashboardTools.some((t) => t.name === 'list_dashboards')).toBe(true);
+      expect(dashboardTools.some((t) => t.name === 'create_dashboard')).toBe(true);
+    });
+
+    it('should have panel tools registered', () => {
+      expect(panelTools.length).toBeGreaterThan(0);
+      expect(panelTools.some((t) => t.name === 'list_panels')).toBe(true);
+      expect(panelTools.some((t) => t.name === 'create_panel')).toBe(true);
+    });
   });
 
   describe('Tool Input Schema Validation', () => {
     it('should validate tool schemas are valid Zod schemas', () => {
-      const allTools = [...schemaTools, ...contentTools, ...flowTools];
+      const allTools = [...schemaTools, ...contentTools, ...flowTools, ...dashboardTools, ...panelTools];
       allTools.forEach((tool) => {
         // Try to parse empty object - should either succeed or throw ZodError
         try {
@@ -193,7 +207,7 @@ describe('Index Helper Functions', () => {
   });
 
   describe('Toolset Support', () => {
-    const allTools = [...schemaTools, ...contentTools, ...flowTools];
+    const allTools = [...schemaTools, ...contentTools, ...flowTools, ...dashboardTools, ...panelTools];
 
     it('should have collections, fields, relations, and content tools assigned to default toolset', () => {
       // Schema snapshot/diff tools are NOT in default, only collections/fields/relations/content are
@@ -245,8 +259,15 @@ describe('Index Helper Functions', () => {
       });
     });
 
+    it('should have dashboard and panel tools assigned to dashboards toolset only (not default)', () => {
+      [...dashboardTools, ...panelTools].forEach((tool) => {
+        expect(tool.toolsets).toContain('dashboards');
+        expect(tool.toolsets).not.toContain('default');
+      });
+    });
+
     it('should have valid toolset values', () => {
-      const validToolsets: Toolset[] = ['default', 'schema', 'content', 'flow', 'collections', 'fields', 'relations'];
+      const validToolsets: Toolset[] = ['default', 'schema', 'content', 'flow', 'collections', 'fields', 'relations', 'dashboards', 'all'];
       allTools.forEach((tool) => {
         if (tool.toolsets) {
           tool.toolsets.forEach((toolset) => {
@@ -258,7 +279,7 @@ describe('Index Helper Functions', () => {
   });
 
   describe('Toolset Filtering Logic', () => {
-    const allTools = [...schemaTools, ...contentTools, ...flowTools];
+    const allTools = [...schemaTools, ...contentTools, ...flowTools, ...dashboardTools, ...panelTools];
 
     function parseToolsets(envValue: string | undefined): Toolset[] {
       if (!envValue || envValue.trim() === '') {
@@ -270,10 +291,15 @@ describe('Index Helper Functions', () => {
         .map((t) => t.trim().toLowerCase())
         .filter((t) => t.length > 0);
 
-      const validToolsets: Toolset[] = ['default', 'schema', 'content', 'flow', 'collections', 'fields', 'relations'];
+      const validToolsets: Toolset[] = ['default', 'schema', 'content', 'flow', 'collections', 'fields', 'relations', 'dashboards', 'all'];
       const filtered = requestedToolsets.filter((t) =>
         validToolsets.includes(t as Toolset)
       ) as Toolset[];
+
+      // If 'all' is requested, return it alone (it includes everything)
+      if (filtered.includes('all')) {
+        return ['all'];
+      }
 
       if (filtered.length === 0) {
         return ['default'];
@@ -286,6 +312,11 @@ describe('Index Helper Functions', () => {
       tools: typeof allTools,
       toolsets: Toolset[]
     ) {
+      // If 'all' is requested, return all tools regardless of their toolset membership
+      if (toolsets.includes('all')) {
+        return tools;
+      }
+
       return tools.filter((tool) => {
         return tool.toolsets?.some((toolset) => toolsets.includes(toolset)) ?? false;
       });
@@ -309,6 +340,8 @@ describe('Index Helper Functions', () => {
         expect(parseToolsets('collections')).toEqual(['collections']);
         expect(parseToolsets('fields')).toEqual(['fields']);
         expect(parseToolsets('relations')).toEqual(['relations']);
+        expect(parseToolsets('dashboards')).toEqual(['dashboards']);
+        expect(parseToolsets('all')).toEqual(['all']);
       });
 
       it('should parse multiple toolsets', () => {
@@ -316,6 +349,12 @@ describe('Index Helper Functions', () => {
         expect(parseToolsets('default,flow')).toEqual(['default', 'flow']);
         expect(parseToolsets('schema,content,flow')).toEqual(['schema', 'content', 'flow']);
         expect(parseToolsets('collections,fields,relations')).toEqual(['collections', 'fields', 'relations']);
+      });
+
+      it('should return only "all" when "all" is requested with other toolsets', () => {
+        expect(parseToolsets('all')).toEqual(['all']);
+        expect(parseToolsets('all,schema')).toEqual(['all']);
+        expect(parseToolsets('schema,all,content')).toEqual(['all']);
       });
 
       it('should handle whitespace in toolset list', () => {
@@ -403,6 +442,15 @@ describe('Index Helper Functions', () => {
         });
       });
 
+      it('should return only dashboard and panel tools when filtering by dashboards toolset', () => {
+        const filtered = filterToolsByToolsets(allTools, ['dashboards']);
+        // Dashboard tools (8) + panel tools (8) = 16 total
+        expect(filtered.length).toBe(dashboardTools.length + panelTools.length);
+        filtered.forEach((tool) => {
+          expect(tool.toolsets).toContain('dashboards');
+        });
+      });
+
       it('should return tools from multiple toolsets', () => {
         const filtered = filterToolsByToolsets(allTools, [
           'schema',
@@ -417,6 +465,18 @@ describe('Index Helper Functions', () => {
             toolToolsets.includes('schema') || toolToolsets.includes('content')
           ).toBe(true);
         });
+      });
+
+      it('should return all tools when filtering by "all" toolset', () => {
+        const filtered = filterToolsByToolsets(allTools, ['all']);
+        expect(filtered.length).toBe(allTools.length);
+        // Verify it includes tools from all toolsets
+        const hasSchemaTool = filtered.some(t => (t.toolsets as readonly Toolset[]).includes('schema'));
+        const hasContentTool = filtered.some(t => (t.toolsets as readonly Toolset[]).includes('content'));
+        const hasFlowTool = filtered.some(t => (t.toolsets as readonly Toolset[]).includes('flow'));
+        expect(hasSchemaTool).toBe(true);
+        expect(hasContentTool).toBe(true);
+        expect(hasFlowTool).toBe(true);
       });
 
       it('should not return duplicate tools when multiple toolsets are specified', () => {
@@ -434,7 +494,7 @@ describe('Index Helper Functions', () => {
     });
 
     describe('Default Behavior', () => {
-      it('should expose collections, fields, relations, and content tools (but not schema or flow tools) when no toolset is specified (default toolset)', () => {
+      it('should expose collections, fields, relations, and content tools (but not schema, flow, or dashboard tools) when no toolset is specified (default toolset)', () => {
         const toolsets = parseToolsets(undefined);
         const filtered = filterToolsByToolsets(allTools, toolsets);
         // Schema snapshot/diff tools (3) are NOT in default
@@ -444,10 +504,11 @@ describe('Index Helper Functions', () => {
           expect(tool.toolsets).toContain('default');
           expect(tool.toolsets).not.toContain('schema');
           expect(tool.toolsets).not.toContain('flow');
+          expect(tool.toolsets).not.toContain('dashboards');
         });
       });
 
-      it('should expose only default tools (collections, fields, relations, content, not schema or flow) when default toolset is explicitly requested', () => {
+      it('should expose only default tools (collections, fields, relations, content, not schema, flow, or dashboards) when default toolset is explicitly requested', () => {
         const toolsets = parseToolsets('default');
         const filtered = filterToolsByToolsets(allTools, toolsets);
         // Schema snapshot/diff tools (3) are NOT in default
@@ -457,6 +518,7 @@ describe('Index Helper Functions', () => {
           expect(tool.toolsets).toContain('default');
           expect(tool.toolsets).not.toContain('flow');
           expect(tool.toolsets).not.toContain('schema');
+          expect(tool.toolsets).not.toContain('dashboards');
         });
       });
     });
