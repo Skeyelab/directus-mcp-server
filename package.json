@@ -4,9 +4,7 @@
   "description": "MCP server for managing Directus schema and content",
   "type": "module",
   "main": "dist/index.js",
-  "bin": {
-    "directus-mcp": "./dist/index.js"
-  },
+  "bin": "./dist/index.js",
   "files": [
     "dist",
     "README.md",
