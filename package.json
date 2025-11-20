@@ -1,6 +1,6 @@
 {
   "name": "@skeyelab/directus-mcp-server",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "MCP server for managing Directus schema and content",
   "type": "module",
   "main": "dist/index.js",
