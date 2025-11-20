@@ -141,9 +141,19 @@ export class DirectusClient {
     return this.request('DELETE', `/relations/${id}`);
   }
 
-  // Schema Snapshot
-  async getSchemaSnapshot(): Promise<any> {
-    return this.request('GET', '/schema/snapshot');
+  // Schema
+  async getSchemaSnapshot(params?: { export?: 'csv' | 'json' | 'xml' | 'yaml' }): Promise<any> {
+    const queryString = params ? this.buildQueryString(params) : '';
+    return this.request('GET', `/schema/snapshot${queryString}`);
+  }
+
+  async getSchemaDiff(snapshot: any, options?: { force?: boolean }): Promise<any> {
+    const queryString = options?.force ? '?force=true' : '';
+    return this.request('POST', `/schema/diff${queryString}`, snapshot);
+  }
+
+  async applySchemaDiff(diff: any): Promise<any> {
+    return this.request('POST', '/schema/apply', diff);
   }
 
   // Items
@@ -272,6 +282,10 @@ export class DirectusClient {
 
     if (params.meta) {
       queryParams.append('meta', params.meta);
+    }
+
+    if (params.export) {
+      queryParams.append('export', params.export);
     }
 
     const query = queryParams.toString();
