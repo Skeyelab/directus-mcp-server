@@ -141,6 +141,11 @@ export class DirectusClient {
     return this.request('DELETE', `/relations/${id}`);
   }
 
+  // Schema Snapshot
+  async getSchemaSnapshot(): Promise<any> {
+    return this.request('GET', '/schema/snapshot');
+  }
+
   // Items
   async queryItems(collection: string, params?: any): Promise<any> {
     const queryString = params ? this.buildQueryString(params) : '';
