@@ -1,11 +1,147 @@
 import { createDirectus, rest, authentication, staticToken } from '@directus/sdk';
 import { DirectusConfig } from './types/index.js';
 
+// Resource factory for common CRUD patterns
+function createResourceMethods(basePath: string, options: {
+  supportsBulk?: boolean;
+  specialMethods?: Record<string, (client: DirectusClient, ...args: any[]) => Promise<any>>;
+} = {}) {
+  const { supportsBulk = false, specialMethods = {} } = options;
+  const normalizedBasePath = basePath.startsWith('/') ? basePath : `/${basePath}`;
+
+  return {
+    // List/query operations
+    list: function(client: DirectusClient, params?: any) {
+      const queryString = params ? client.buildQueryString(params) : '';
+      return client.request('GET', `${normalizedBasePath}${queryString}`);
+    },
+
+    // Get single item
+    get: function(client: DirectusClient, id: string | number, params?: any) {
+      const queryString = params ? client.buildQueryString(params) : '';
+      return client.request('GET', `${normalizedBasePath}/${id}${queryString}`);
+    },
+
+    // Create single item
+    create: function(client: DirectusClient, data: any) {
+      return client.request('POST', normalizedBasePath, data);
+    },
+
+    // Update single item
+    update: function(client: DirectusClient, id: string | number, data: any) {
+      return client.request('PATCH', `${normalizedBasePath}/${id}`, data);
+    },
+
+    // Delete single item
+    delete: function(client: DirectusClient, id: string | number) {
+      return client.request('DELETE', `${normalizedBasePath}/${id}`);
+    },
+
+    // Bulk operations (if supported)
+    ...(supportsBulk && {
+      bulkCreate: function(client: DirectusClient, items: any[]) {
+        return client.request('POST', normalizedBasePath, items);
+      },
+
+      bulkUpdate: function(client: DirectusClient, items: any[]) {
+        return client.request('PATCH', normalizedBasePath, items);
+      },
+
+      bulkDelete: function(client: DirectusClient, ids: (string | number)[]) {
+        return client.request('DELETE', normalizedBasePath, ids);
+      },
+    }),
+
+    // Special methods
+    ...Object.fromEntries(
+      Object.entries(specialMethods).map(([name, method]) => [
+        name,
+        (client: DirectusClient, ...args: any[]) => method(client, ...args)
+      ])
+    )
+  };
+}
+
 export class DirectusClient {
   private client: any;
   private config: DirectusConfig;
   private baseUrl: string;
   private authHeaders: { Authorization?: string } = {};
+
+  // Resource factories
+  private collections = createResourceMethods('collections');
+  private relations = createResourceMethods('relations');
+  private items = createResourceMethods('', {
+    supportsBulk: true,
+    specialMethods: {
+      query: (client: DirectusClient, collection: string, params?: any) => {
+        const queryString = params ? client.buildQueryString(params) : '';
+        return client.request('GET', `/items/${collection}${queryString}`);
+      },
+      get: (client: DirectusClient, collection: string, id: string | number, params?: any) => {
+        const queryString = params ? client.buildQueryString(params) : '';
+        return client.request('GET', `/items/${collection}/${id}${queryString}`);
+      },
+      create: (client: DirectusClient, collection: string, data: any) => {
+        return client.request('POST', `/items/${collection}`, data);
+      },
+      update: (client: DirectusClient, collection: string, id: string | number, data: any) => {
+        return client.request('PATCH', `/items/${collection}/${id}`, data);
+      },
+      delete: (client: DirectusClient, collection: string, id: string | number) => {
+        return client.request('DELETE', `/items/${collection}/${id}`);
+      },
+      bulkCreate: (client: DirectusClient, collection: string, items: any[]) => {
+        return client.request('POST', `/items/${collection}`, items);
+      },
+      bulkUpdate: (client: DirectusClient, collection: string, items: any[]) => {
+        return client.request('PATCH', `/items/${collection}`, items);
+      },
+      bulkDelete: (client: DirectusClient, collection: string, ids: (string | number)[]) => {
+        return client.request('DELETE', `/items/${collection}`, ids);
+      }
+    }
+  });
+  private flows = createResourceMethods('flows', {
+    supportsBulk: true,
+    specialMethods: {
+      list: (client: DirectusClient, params?: any) => {
+        const queryString = params ? client.buildQueryString(params) : '';
+        return client.request('GET', `/flows${queryString}`);
+      },
+      get: (client: DirectusClient, id: string, params?: any) => {
+        const queryString = params ? client.buildQueryString(params) : '';
+        return client.request('GET', `/flows/${id}${queryString}`);
+      },
+      create: (client: DirectusClient, data: any) => {
+        return client.request('POST', '/flows', data);
+      },
+      createFlows: (client: DirectusClient, flows: any[]) => {
+        return client.request('POST', '/flows', flows);
+      },
+      update: (client: DirectusClient, id: string, data: any) => {
+        return client.request('PATCH', `/flows/${id}`, data);
+      },
+      updateFlows: (client: DirectusClient, flows: any[]) => {
+        return client.request('PATCH', '/flows', flows);
+      },
+      delete: (client: DirectusClient, id: string) => {
+        return client.request('DELETE', `/flows/${id}`);
+      },
+      deleteFlows: (client: DirectusClient, ids: string[]) => {
+        return client.request('DELETE', '/flows', ids);
+      },
+      triggerFlow: (client: DirectusClient, method: 'GET' | 'POST', id: string, bodyData?: any, queryParams?: any) => {
+        const queryString = queryParams ? client.buildQueryString(queryParams) : '';
+        const endpoint = `/flows/trigger/${id}${queryString}`;
+        if (method === 'POST') {
+          return client.request('POST', endpoint, bodyData);
+        } else {
+          return client.request('GET', endpoint);
+        }
+      }
+    }
+  });
 
   constructor(config: DirectusConfig) {
     this.config = config;
@@ -80,23 +216,23 @@ export class DirectusClient {
 
   // Collections
   async getCollections(): Promise<any> {
-    return this.request('GET', '/collections');
+    return this.collections.list(this);
   }
 
   async getCollection(name: string): Promise<any> {
-    return this.request('GET', `/collections/${name}`);
+    return this.collections.get(this, name);
   }
 
   async createCollection(data: any): Promise<any> {
-    return this.request('POST', '/collections', data);
+    return this.collections.create(this, data);
   }
 
   async updateCollection(name: string, data: any): Promise<any> {
-    return this.request('PATCH', `/collections/${name}`, data);
+    return this.collections.update(this, name, data);
   }
 
   async deleteCollection(name: string): Promise<any> {
-    return this.request('DELETE', `/collections/${name}`);
+    return this.collections.delete(this, name);
   }
 
   // Fields
@@ -122,23 +258,23 @@ export class DirectusClient {
 
   // Relations
   async getRelations(): Promise<any> {
-    return this.request('GET', '/relations');
+    return this.relations.list(this);
   }
 
   async getRelation(id: number): Promise<any> {
-    return this.request('GET', `/relations/${id}`);
+    return this.relations.get(this, id);
   }
 
   async createRelation(data: any): Promise<any> {
-    return this.request('POST', '/relations', data);
+    return this.relations.create(this, data);
   }
 
   async updateRelation(id: number, data: any): Promise<any> {
-    return this.request('PATCH', `/relations/${id}`, data);
+    return this.relations.update(this, id, data);
   }
 
   async deleteRelation(id: number): Promise<any> {
-    return this.request('DELETE', `/relations/${id}`);
+    return this.relations.delete(this, id);
   }
 
   // Schema
@@ -158,86 +294,75 @@ export class DirectusClient {
 
   // Items
   async queryItems(collection: string, params?: any): Promise<any> {
-    const queryString = params ? this.buildQueryString(params) : '';
-    return this.request('GET', `/items/${collection}${queryString}`);
+    return (this.items as any).query(this, collection, params);
   }
 
   async getItem(collection: string, id: string | number, params?: any): Promise<any> {
-    const queryString = params ? this.buildQueryString(params) : '';
-    return this.request('GET', `/items/${collection}/${id}${queryString}`);
+    return (this.items as any).get(this, collection, id, params);
   }
 
   async createItem(collection: string, data: any): Promise<any> {
-    return this.request('POST', `/items/${collection}`, data);
+    return (this.items as any).create(this, collection, data);
   }
 
   async updateItem(collection: string, id: string | number, data: any): Promise<any> {
-    return this.request('PATCH', `/items/${collection}/${id}`, data);
+    return (this.items as any).update(this, collection, id, data);
   }
 
   async deleteItem(collection: string, id: string | number): Promise<any> {
-    return this.request('DELETE', `/items/${collection}/${id}`);
+    return (this.items as any).delete(this, collection, id);
   }
 
   async bulkCreateItems(collection: string, items: any[]): Promise<any> {
-    return this.request('POST', `/items/${collection}`, items);
+    return (this.items as any).bulkCreate(this, collection, items);
   }
 
   async bulkUpdateItems(collection: string, items: any[]): Promise<any> {
-    return this.request('PATCH', `/items/${collection}`, items);
+    return (this.items as any).bulkUpdate(this, collection, items);
   }
 
   async bulkDeleteItems(collection: string, ids: (string | number)[]): Promise<any> {
-    return this.request('DELETE', `/items/${collection}`, ids);
+    return (this.items as any).bulkDelete(this, collection, ids);
   }
 
   // Flows
   async listFlows(params?: any): Promise<any> {
-    const queryString = params ? this.buildQueryString(params) : '';
-    return this.request('GET', `/flows${queryString}`);
+    return (this.flows as any).list(this, params);
   }
 
   async getFlow(id: string, params?: any): Promise<any> {
-    const queryString = params ? this.buildQueryString(params) : '';
-    return this.request('GET', `/flows/${id}${queryString}`);
+    return (this.flows as any).get(this, id, params);
   }
 
   async createFlow(data: any): Promise<any> {
-    return this.request('POST', '/flows', data);
+    return (this.flows as any).create(this, data);
   }
 
   async createFlows(flows: any[]): Promise<any> {
-    return this.request('POST', '/flows', flows);
+    return (this.flows as any).createFlows(this, flows);
   }
 
   async updateFlow(id: string, data: any): Promise<any> {
-    return this.request('PATCH', `/flows/${id}`, data);
+    return (this.flows as any).update(this, id, data);
   }
 
   async updateFlows(flows: any[]): Promise<any> {
-    return this.request('PATCH', '/flows', flows);
+    return (this.flows as any).updateFlows(this, flows);
   }
 
   async deleteFlow(id: string): Promise<any> {
-    return this.request('DELETE', `/flows/${id}`);
+    return (this.flows as any).delete(this, id);
   }
 
   async deleteFlows(ids: string[]): Promise<any> {
-    return this.request('DELETE', '/flows', ids);
+    return (this.flows as any).deleteFlows(this, ids);
   }
 
   async triggerFlow(method: 'GET' | 'POST', id: string, bodyData?: any, queryParams?: any): Promise<any> {
-    const queryString = queryParams ? this.buildQueryString(queryParams) : '';
-    const endpoint = `/flows/trigger/${id}${queryString}`;
-
-    if (method === 'POST') {
-      return this.request('POST', endpoint, bodyData);
-    } else {
-      return this.request('GET', endpoint);
-    }
+    return (this.flows as any).triggerFlow(this, method, id, bodyData, queryParams);
   }
 
-  private buildQueryString(params: any): string {
+  public buildQueryString(params: any): string {
     const queryParams = new URLSearchParams();
 
     if (params.fields) {

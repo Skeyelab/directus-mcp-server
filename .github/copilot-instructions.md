@@ -17,9 +17,11 @@ This is a Model Context Protocol (MCP) server that provides comprehensive tools 
 ```
 src/
 ├── index.ts                    # Main MCP server entry point
-├── directus-client.ts          # Directus API client with auth
+├── directus-client.ts          # Directus API client with auth & resource factories
 ├── directus-client.test.ts     # Client tests
-├── tools/                      # MCP tool implementations
+├── tools/                      # MCP tool implementations & utilities
+│   ├── tool-helpers.ts         # Helper functions for creating tools
+│   ├── validators.ts           # Shared Zod schemas and validators
 │   ├── schema-tools.ts         # Collection, field, relation management
 │   ├── schema-tools.test.ts
 │   ├── content-tools.ts        # CRUD operations for items
@@ -72,20 +74,49 @@ npm run lint:fix      # Auto-fix issues
 - Use appropriate HTTP status codes from Directus SDK
 
 ### Tool Pattern
-Each MCP tool follows this structure:
+Use the provided helper functions for consistent tool creation:
+
+#### Data-Returning Tools
+```typescript
+import { createTool } from './tools/tool-helpers.js';
+import { MyInputSchema } from './tools/validators.js';
+
+const myTool = createTool({
+  name: 'my_tool',
+  description: 'Clear description of what the tool does',
+  inputSchema: MyInputSchema,
+  toolsets: ['default', 'my-category'],
+  handler: async (client, args) => {
+    // Execute operation - response formatting is handled automatically
+    return client.someMethod(args);
+  }
+});
+```
+
+#### Action Tools (return success messages)
+```typescript
+import { createActionTool } from './tools/tool-helpers.js';
+
+const deleteTool = createActionTool({
+  name: 'delete_item',
+  description: 'Delete an item',
+  inputSchema: DeleteSchema,
+  toolsets: ['default'],
+  handler: async (client, args) => client.deleteMethod(args.id),
+  successMessage: (args) => `Successfully deleted item ${args.id}`
+});
+```
+
+#### Manual Tool Creation (advanced cases)
+For complex cases requiring manual response formatting:
 ```typescript
 {
   name: 'tool_name',
   description: 'Clear description of what the tool does',
-  inputSchema: zodSchema.shape,  // Zod schema converted to JSON schema
-  handler: async (args) => {
-    // Validate input
-    const validated = zodSchema.parse(args);
-    
-    // Execute operation
-    const result = await directusClient.request(operation);
-    
-    // Return formatted response
+  inputSchema: zodSchema,
+  toolsets: ['default'],
+  handler: async (client, args) => {
+    const result = await client.someMethod(args);
     return {
       content: [
         {
@@ -136,6 +167,45 @@ const mockRequest = vi.fn();
 const mockClient = { request: mockRequest } as any;
 ```
 
+## Development Utilities
+
+### Shared Validators (`src/tools/validators.ts`)
+Common Zod schemas for consistent validation:
+
+```typescript
+import {
+  CollectionNameSchema,    // Collection names
+  ItemIdSchema,           // Item IDs (string | number)
+  FieldsSchema,           // Field arrays
+  FilterSchema,           // Directus filter objects
+  SortSchema,             // Sort field arrays
+  LimitSchema,            // Pagination limits
+  FlowTriggerSchema,      // Flow trigger types
+  FlowStatusSchema,       // Flow status enums
+  HttpMethodSchema,       // GET/POST methods
+  AnyRecordSchema         // Generic objects
+} from './tools/validators.js';
+```
+
+### Tool Helpers (`src/tools/tool-helpers.ts`)
+Standardized tool creation:
+
+- `createTool()`: For tools that return data (automatic JSON formatting)
+- `createActionTool()`: For actions that return success messages
+
+### Resource Factory Pattern (`src/directus-client.ts`)
+The client uses `createResourceMethods()` for consistent CRUD operations:
+
+```typescript
+// Adding new Directus resources follows this pattern
+private newResource = createResourceMethods('endpoint', {
+  supportsBulk: true,  // Enable bulk operations
+  specialMethods: {    // Custom methods beyond CRUD
+    customAction: (client, ...args) => client.customLogic(...args)
+  }
+});
+```
+
 ## Key Dependencies
 
 ### @modelcontextprotocol/sdk
@@ -151,9 +221,10 @@ const mockClient = { request: mockRequest } as any;
 
 ### Zod
 - Define input schemas for all tools
+- Use shared schemas from `validators.ts` for common patterns
 - Use `.shape` to convert to MCP JSON schema format
 - Leverage `.parse()` for runtime validation
-- Create reusable schema components
+- Create reusable schema components in `validators.ts`
 
 ## Authentication
 
@@ -166,12 +237,42 @@ Validate that at least one method is configured at startup.
 ## Common Patterns
 
 ### Adding a New Tool
-1. Define input schema with Zod in the appropriate tools file
-2. Create tool definition with name, description, inputSchema
-3. Implement handler with proper error handling
-4. Export tool in tools array
-5. Add comprehensive tests in corresponding `.test.ts` file
-6. Update README.md with tool documentation
+1. **Define input schema**: Use shared validators from `./tools/validators.ts` or create new ones
+2. **Create tool**: Use `createTool()` or `createActionTool()` from `./tools/tool-helpers.ts`
+3. **Implement handler**: Focus on business logic - helpers handle response formatting
+4. **Export tool**: Add to tools array in appropriate file
+5. **Add tests**: Test both success/error cases in corresponding `.test.ts` file
+6. **Update docs**: Add to README.md and toolset filtering if needed
+
+#### Example: Adding a New Content Tool
+```typescript
+// In content-tools.ts
+import { createTool } from './tool-helpers.js';
+import { CollectionNameSchema, ItemIdSchema } from './validators.js';
+
+const GetCustomItemSchema = z.object({
+  collection: CollectionNameSchema,
+  id: ItemIdSchema,
+  customParam: z.string().describe('Custom parameter'),
+});
+
+const customTool = createTool({
+  name: 'get_custom_item',
+  description: 'Get item with custom logic',
+  inputSchema: GetCustomItemSchema,
+  toolsets: ['default', 'content'],
+  handler: async (client, args) => {
+    // Custom logic here
+    return client.getItem(args.collection, args.id, { custom: args.customParam });
+  }
+});
+
+// Add to exports
+export const contentTools = [
+  // ... existing tools
+  customTool
+];
+```
 
 ### Query Building
 Use Directus SDK query builders:
@@ -201,14 +302,17 @@ One of:
 
 ## Best Practices
 
-1. **Type Safety**: Leverage TypeScript's type system fully
-2. **Validation**: Always validate input with Zod schemas
-3. **Error Messages**: Provide clear, actionable error messages
-4. **Testing**: Write tests for all new tools and functions
-5. **Documentation**: Update README.md when adding features
-6. **Consistency**: Follow existing patterns in the codebase
-7. **Async/Await**: Use async/await, avoid callbacks
-8. **Imports**: Use `.js` extensions for local imports (ES modules)
+1. **Use Helpers**: Leverage `createTool()` and `createActionTool()` for consistent tool creation
+2. **Shared Validators**: Use schemas from `validators.ts` instead of redefining common patterns
+3. **Resource Factory**: When extending Directus client, use `createResourceMethods()` for consistency
+4. **Type Safety**: Leverage TypeScript's type system fully
+5. **Validation**: Always validate input with Zod schemas
+6. **Error Messages**: Provide clear, actionable error messages
+7. **Testing**: Write tests for all new tools and functions
+8. **Documentation**: Update README.md when adding features
+9. **Consistency**: Follow existing patterns in the codebase
+10. **Async/Await**: Use async/await, avoid callbacks
+11. **Imports**: Use `.js` extensions for local imports (ES modules)
 
 ## Common Issues
 

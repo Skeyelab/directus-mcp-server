@@ -636,6 +636,64 @@ npm run dev
 npm run build
 ```
 
+## Tool Authoring
+
+This project provides utilities to streamline MCP tool development and reduce code duplication:
+
+### Tool Helpers
+
+Use `createTool` for tools that return data, and `createActionTool` for tools that perform actions:
+
+```typescript
+import { createTool, createActionTool } from './tools/tool-helpers.js';
+
+// Data-returning tool
+const myTool = createTool({
+  name: 'my_tool',
+  description: 'Description of what the tool does',
+  inputSchema: MySchema,
+  toolsets: ['default', 'my-category'],
+  handler: async (client, args) => client.someMethod(args)
+});
+
+// Action tool (returns success message)
+const myActionTool = createActionTool({
+  name: 'delete_something',
+  description: 'Delete something',
+  inputSchema: DeleteSchema,
+  toolsets: ['default'],
+  handler: async (client, args) => client.deleteMethod(args.id),
+  successMessage: (args) => `Successfully deleted item ${args.id}`
+});
+```
+
+### Shared Validators
+
+Common Zod schemas are available in `src/tools/validators.ts`:
+
+- `CollectionNameSchema` - For collection names
+- `ItemIdSchema` - For item IDs (string | number)
+- `FieldsSchema` - For field arrays
+- `FilterSchema` - For Directus filter objects
+- Query parameter schemas (`SortSchema`, `LimitSchema`, etc.)
+- Flow-related schemas (`FlowTriggerSchema`, `FlowStatusSchema`, etc.)
+
+Example usage:
+
+```typescript
+import { CollectionNameSchema, ItemIdSchema } from './tools/validators.js';
+
+const MyToolSchema = z.object({
+  collection: CollectionNameSchema,
+  id: ItemIdSchema,
+  // ... other fields
+});
+```
+
+### Directus Client Resource Factory
+
+The client uses a resource factory pattern for consistent CRUD operations. When adding new Directus resources, define them in the client constructor using `createResourceMethods()`.
+
 ## Error Handling
 
 All tools include error handling and will return descriptive error messages for:

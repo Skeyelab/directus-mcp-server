@@ -6,3 +6,4 @@ dist/
 .cursor/mcp.json
 package-lock.json
 
+/coverage
