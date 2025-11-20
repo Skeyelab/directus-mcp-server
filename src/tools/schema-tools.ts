@@ -1,12 +1,7 @@
 import { z } from 'zod';
-import { DirectusClient } from '../directus-client.js';
 import { createTool, createActionTool } from './tool-helpers.js';
 import {
   CollectionNameSchema,
-  QueryParamsSchema,
-  FieldsSchema,
-  DeepSchema,
-  AnyRecordSchema,
   AnyArraySchema,
   OnDeleteActionSchema,
   OnUpdateActionSchema,

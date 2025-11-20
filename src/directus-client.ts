@@ -2,12 +2,11 @@ import { createDirectus, rest, authentication, staticToken } from '@directus/sdk
 import { DirectusConfig } from './types/index.js';
 
 // Resource factory for common CRUD patterns
-function createResourceMethods<T = any>(basePath: string, options: {
-  idParam?: string;
+function createResourceMethods(basePath: string, options: {
   supportsBulk?: boolean;
   specialMethods?: Record<string, (client: DirectusClient, ...args: any[]) => Promise<any>>;
 } = {}) {
-  const { idParam = 'id', supportsBulk = false, specialMethods = {} } = options;
+  const { supportsBulk = false, specialMethods = {} } = options;
   const normalizedBasePath = basePath.startsWith('/') ? basePath : `/${basePath}`;
 
   return {

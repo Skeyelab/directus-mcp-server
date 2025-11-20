@@ -25,7 +25,7 @@ describe('Tool Helpers', () => {
         description: 'A test tool',
         inputSchema: TestSchema,
         toolsets: ['default', 'content'],
-        handler: async (client, args) => ({ success: true, data: args }),
+        handler: async (_client, args) => ({ success: true, data: args }),
       });
 
       expect(tool.name).toBe('test_tool');
@@ -42,7 +42,7 @@ describe('Tool Helpers', () => {
         description: 'Get test data',
         inputSchema: TestSchema,
         toolsets: ['default'],
-        handler: async (client, args) => mockResult,
+        handler: async (_client, _args) => mockResult,
       });
 
       const result = await tool.handler(mockClient, { collection: 'test', id: 1 });
@@ -71,7 +71,7 @@ describe('Tool Helpers', () => {
         description: 'Complex data tool',
         inputSchema: TestSchema,
         toolsets: ['default'],
-        handler: async (client, args) => complexData,
+        handler: async (_client, _args) => complexData,
       });
 
       const result = await tool.handler(mockClient, { collection: 'test', id: 1 });
@@ -103,7 +103,7 @@ describe('Tool Helpers', () => {
         description: 'Empty result tool',
         inputSchema: TestSchema,
         toolsets: ['default'],
-        handler: async (client, args) => [],
+        handler: async (_client, _args) => [],
       });
 
       const result = await tool.handler(mockClient, { collection: 'test', id: 1 });
@@ -123,7 +123,7 @@ describe('Tool Helpers', () => {
         description: 'Delete an item',
         inputSchema: DeleteSchema,
         toolsets: ['default'],
-        handler: async (client, args) => undefined,
+        handler: async (_client, _args) => undefined,
         successMessage: (args) => `Deleted item ${args.id}`,
       });
 
@@ -166,7 +166,7 @@ describe('Tool Helpers', () => {
         description: 'Custom message tool',
         inputSchema: DeleteSchema,
         toolsets: ['default'],
-        handler: async (client, args) => undefined,
+        handler: async (_client, _args) => undefined,
         successMessage: successMessageFn,
       });
 
@@ -182,10 +182,10 @@ describe('Tool Helpers', () => {
         description: 'Void handler tool',
         inputSchema: DeleteSchema,
         toolsets: ['default'],
-        handler: async (client, args) => {
+        handler: async (_client, _args) => {
           // Handler returns void
         },
-        successMessage: (args) => 'Operation completed',
+        successMessage: (_args) => 'Operation completed',
       });
 
       const result = await tool.handler(mockClient, { collection: 'test', id: 1 });
@@ -198,10 +198,10 @@ describe('Tool Helpers', () => {
         description: 'Error tool',
         inputSchema: DeleteSchema,
         toolsets: ['default'],
-        handler: async (client, args) => {
+        handler: async (_client, _args) => {
           throw new Error('Handler failed');
         },
-        successMessage: (args) => 'Should not reach here',
+        successMessage: (_args) => 'Should not reach here',
       });
 
       await expect(tool.handler(mockClient, { collection: 'test', id: 1 }))
@@ -222,7 +222,7 @@ describe('Tool Helpers', () => {
         description: 'Tool with real schema',
         inputSchema: RealSchema,
         toolsets: ['default'],
-        handler: async (client, args) => ({ result: args.name, total: args.count }),
+        handler: async (_client, args) => ({ result: args.name, total: args.count }),
       });
 
       const result = await tool.handler(mockClient, { name: 'test', count: 5 });
