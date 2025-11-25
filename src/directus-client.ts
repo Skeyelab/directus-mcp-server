@@ -76,29 +76,45 @@ export class DirectusClient {
     specialMethods: {
       query: (client: DirectusClient, collection: string, params?: any) => {
         const queryString = params ? client.buildQueryString(params) : '';
-        return client.request('GET', `/items/${collection}${queryString}`);
+        // Files collection uses /files endpoint instead of /items/directus_files
+        const endpoint = collection === 'directus_files' ? '/files' : `/items/${collection}`;
+        return client.request('GET', `${endpoint}${queryString}`);
       },
       get: (client: DirectusClient, collection: string, id: string | number, params?: any) => {
         const queryString = params ? client.buildQueryString(params) : '';
-        return client.request('GET', `/items/${collection}/${id}${queryString}`);
+        // Files collection uses /files endpoint instead of /items/directus_files
+        const endpoint = collection === 'directus_files' ? '/files' : `/items/${collection}`;
+        return client.request('GET', `${endpoint}/${id}${queryString}`);
       },
       create: (client: DirectusClient, collection: string, data: any) => {
-        return client.request('POST', `/items/${collection}`, data);
+        // Files collection uses /files endpoint instead of /items/directus_files
+        const endpoint = collection === 'directus_files' ? '/files' : `/items/${collection}`;
+        return client.request('POST', endpoint, data);
       },
       update: (client: DirectusClient, collection: string, id: string | number, data: any) => {
-        return client.request('PATCH', `/items/${collection}/${id}`, data);
+        // Files collection uses /files endpoint instead of /items/directus_files
+        const endpoint = collection === 'directus_files' ? '/files' : `/items/${collection}`;
+        return client.request('PATCH', `${endpoint}/${id}`, data);
       },
       delete: (client: DirectusClient, collection: string, id: string | number) => {
-        return client.request('DELETE', `/items/${collection}/${id}`);
+        // Files collection uses /files endpoint instead of /items/directus_files
+        const endpoint = collection === 'directus_files' ? '/files' : `/items/${collection}`;
+        return client.request('DELETE', `${endpoint}/${id}`);
       },
       bulkCreate: (client: DirectusClient, collection: string, items: any[]) => {
-        return client.request('POST', `/items/${collection}`, items);
+        // Files collection uses /files endpoint instead of /items/directus_files
+        const endpoint = collection === 'directus_files' ? '/files' : `/items/${collection}`;
+        return client.request('POST', endpoint, items);
       },
       bulkUpdate: (client: DirectusClient, collection: string, items: any[]) => {
-        return client.request('PATCH', `/items/${collection}`, items);
+        // Files collection uses /files endpoint instead of /items/directus_files
+        const endpoint = collection === 'directus_files' ? '/files' : `/items/${collection}`;
+        return client.request('PATCH', endpoint, items);
       },
       bulkDelete: (client: DirectusClient, collection: string, ids: (string | number)[]) => {
-        return client.request('DELETE', `/items/${collection}`, ids);
+        // Files collection uses /files endpoint instead of /items/directus_files
+        const endpoint = collection === 'directus_files' ? '/files' : `/items/${collection}`;
+        return client.request('DELETE', endpoint, ids);
       }
     }
   });
